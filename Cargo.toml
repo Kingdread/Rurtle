@@ -1,0 +1,16 @@
+[package]
+name = "Rurtle"
+version = "0.1.0"
+authors = ["Daniel <root@kingdread.de>"]
+
+[lib]
+name = "rurtle"
+doc = true
+path = "src/lib.rs"
+
+[[bin]]
+name = "rurtle"
+doc = false
+
+[dependencies]
+glium = "*"
