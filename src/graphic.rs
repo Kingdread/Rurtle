@@ -27,6 +27,7 @@
 //! screen.draw_and_update();
 //! ```
 extern crate glium;
+extern crate image;
 use glium::Surface;
 
 /// A Point to pass around to shaders.
@@ -217,5 +218,10 @@ impl TurtleScreen {
     /// Return if the window has been closed
     pub fn is_closed(&self) -> bool {
         return self._is_closed || self.window.is_closed();
+    }
+
+    /// Return the current screen as an image
+    pub fn screenshot(&self) -> image::DynamicImage {
+        self.window.read_front_buffer()
     }
 }
