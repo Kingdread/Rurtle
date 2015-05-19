@@ -54,7 +54,7 @@ pub mod color {
 }
 
 /// A Line is defined via startpoint, endpoint and a color
-struct Line(i32, i32, i32, i32, color::Color);
+struct Line(f32, f32, f32, f32, color::Color);
 
 
 /// A `TurtleScreen` is a window that houses a turtle. It provides some graphic
@@ -65,7 +65,7 @@ pub struct TurtleScreen {
     lines: Vec<Line>,
     _is_closed: bool,
     /// The position of the turtle on the canvas
-    pub turtle_position: (i32, i32),
+    pub turtle_position: (f32, f32),
     /// The color of the turtle
     pub turtle_color: color::Color,
     /// The orientation of the turtle in degrees where 0° is north and positive
@@ -100,14 +100,14 @@ impl TurtleScreen {
             program: program,
             lines: Vec::new(),
             _is_closed: false,
-            turtle_position: (0, 0),
+            turtle_position: (0.0, 0.0),
             turtle_color: color::BLACK,
             turtle_orientation: 0.0,
         }
     }
 
     /// Add a line to the collection, going from point start to point end
-    pub fn add_line(&mut self, start: (i32, i32), end: (i32, i32), color: color::Color) {
+    pub fn add_line(&mut self, start: (f32, f32), end: (f32, f32), color: color::Color) {
         self.lines.push(Line(start.0, start.1, end.0, end.1, color));
     }
 
@@ -134,8 +134,8 @@ impl TurtleScreen {
         let vertex_buffer = glium::VertexBuffer::new(
             &self.window,
             vec![
-                Point { coords: [x1 as f32, y1 as f32] },
-                Point { coords: [x2 as f32, y2 as f32] },
+                Point { coords: [x1, y1] },
+                Point { coords: [x2, y2] },
             ]
         );
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
@@ -162,7 +162,7 @@ impl TurtleScreen {
         const DELTA_MID: (f32, f32) = (0.0, -10.0);
         const DELTA_OUT: (f32, f32) = (7.0, -13.0);
 
-        let (tx, ty) = (self.turtle_position.0 as f32, self.turtle_position.1 as f32);
+        let (tx, ty) = (self.turtle_position.0, self.turtle_position.1);
         let orientation_rad = ::std::f32::consts::PI * self.turtle_orientation / 180.0;
         let sin_d = orientation_rad.sin();
         let cos_d = orientation_rad.cos();
