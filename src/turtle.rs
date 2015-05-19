@@ -130,5 +130,6 @@ impl Turtle {
     /// (like #FF in HTML).
     pub fn set_color(&mut self, red: f32, green: f32, blue: f32) {
         self.color = (red, green, blue, 1.0);
+        self.screen.turtle_color = self.color;
     }
 }
