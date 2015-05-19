@@ -21,8 +21,8 @@
 //! ```
 //! # use rurtle::graphic::{TurtleScreen, color};
 //! let mut screen = TurtleScreen::new((640, 480), "Rurtle");
-//! screen.add_line((0, 0), (50, 50), color::BLACK);
-//! screen.turtle_position = (50, 50);
+//! screen.add_line((0.0, 0.0), (50.0, 50.0), color::BLACK);
+//! screen.turtle_position = (50.0, 50.0);
 //! screen.turtle_orientation = 315.0;
 //! screen.draw_and_update();
 //! ```
