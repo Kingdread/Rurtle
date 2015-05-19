@@ -34,13 +34,16 @@ use glium::Surface;
 #[derive(Copy, Clone)]
 struct Point {
     coords: [f32; 2],
+    color: [f32; 4],
 }
-implement_vertex!(Point, coords);
+implement_vertex!(Point, coords, color);
 
 /// Source for the vertex shader in the OpenGL shader language
 const VERTEX_SHADER: &'static str = include_str!("shaders/vertex.glsl");
 /// Source for the fragment shader in the OpenGL shader language
 const FRAGMENT_SHADER: &'static str = include_str!("shaders/fragment.glsl");
+
+type ScaleMatrix = [[f32; 4]; 4];
 
 /// Module for color aliases
 pub mod color {
@@ -52,6 +55,13 @@ pub mod color {
     pub const RED: Color = (1.0, 0.0, 0.0, 1.0);
     pub const GREEN: Color = (0.0, 1.0, 0.0, 1.0);
     pub const BLUE: Color = (0.0, 0.0, 1.0, 1.0);
+
+    /// Convert a Color (4-tuple of f32) to a color array ([f32; 4]). Useful for
+    /// sending it to shaders.
+    #[inline]
+    pub fn to_array(color: Color) -> [f32; 4] {
+        [color.0, color.1, color.2, color.3]
+    }
 }
 
 /// A Line is defined via startpoint, endpoint and a color
@@ -116,41 +126,35 @@ impl TurtleScreen {
     pub fn draw_and_update(&self) {
         let mut frame = self.window.draw();
         frame.clear_color(1.0, 1.0, 1.0, 1.0);
-        for line in self.lines.iter() {
-            self.draw_line(&mut frame, line);
-        }
-        self.draw_turtle(&mut frame);
-        frame.finish();
-    }
-
-    fn draw_line(&self, frame: &mut glium::Frame, line: &Line) {
-        // It's probably pretty inefficient to call this function for every line
-        // and it would be better to build the whole vertices list in one go,
-        // but this way it's easier to color each line segment differently. I
-        // will change it as soon as I learn more about the whole GLSL thing.
-        use std::default::Default;
-
-        let Line(x1, y1, x2, y2, color) = *line;
         let (width, height) = frame.get_dimensions();
-        let vertex_buffer = glium::VertexBuffer::new(
-            &self.window,
-            vec![
-                Point { coords: [x1, y1] },
-                Point { coords: [x2, y2] },
-            ]
-        );
-        let indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
         let matrix = [
             [2.0 / width as f32, 0.0, 0.0, 0.0],
             [0.0, 2.0 / height as f32, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ];
-        let uniforms = uniform! { icolor: color, matrix: matrix };
-        frame.draw(&vertex_buffer, &indices, &self.program, &uniforms, &Default::default());
+        self.draw_lines(&mut frame, matrix);
+        self.draw_turtle(&mut frame, matrix);
+        frame.finish();
     }
 
-    fn draw_turtle(&self, frame: &mut glium::Frame) {
+    fn draw_lines(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {
+        use std::default::Default;
+        use self::color::to_array;
+        let mut points: Vec<Point> = Vec::new();
+        for line in self.lines.iter() {
+            let &Line(x1, y1, x2, y2, color) = line;
+            points.push(Point { coords: [x1, y1], color: to_array(color) });
+            points.push(Point { coords: [x2, y2], color: to_array(color) });
+        }
+        let vertex_buffer = glium::VertexBuffer::new(&self.window, &points);
+        let indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
+        let uniforms = uniform! { matrix: matrix };
+        frame.draw(&vertex_buffer, &indices, &self.program, &uniforms, &Default::default())
+            .unwrap();
+    }
+
+    fn draw_turtle(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {
         // The turtle consists of 4 points (let tx, ty = turtle_position):
         // A: tx, ty
         // B: tx + DELTA_OUT.0, ty - DELTA_OUT.1
@@ -160,6 +164,7 @@ impl TurtleScreen {
         //
         //     B
         //  C     D
+        use self::color::to_array;
         const DELTA_MID: (f32, f32) = (0.0, -10.0);
         const DELTA_OUT: (f32, f32) = (7.0, -13.0);
 
@@ -174,31 +179,25 @@ impl TurtleScreen {
         let vertex_buffer = glium::VertexBuffer::new(
             &self.window,
             vec![
-                Point { coords: [tx, ty] },
+                Point { coords: [tx, ty], color: to_array(self.turtle_color) },
                 Point { coords: [
                     tx + (-DELTA_OUT.0 * cos_d - DELTA_OUT.1 * sin_d),
                     ty + (-DELTA_OUT.0 * sin_d + DELTA_OUT.1 * cos_d),
-                    ] },
+                    ], color: to_array(self.turtle_color) },
                 Point { coords: [
                     tx + (DELTA_MID.0 * cos_d - DELTA_MID.1 * sin_d),
                     ty + (DELTA_MID.0 * sin_d + DELTA_MID.1 * cos_d),
-                    ] },
+                    ], color: to_array(self.turtle_color) },
                 Point { coords: [
                     tx + (DELTA_OUT.0 * cos_d - DELTA_OUT.1 * sin_d),
                     ty + (DELTA_OUT.0 * sin_d + DELTA_OUT.1 * cos_d),
-                    ] },
+                    ], color: to_array(self.turtle_color) },
                 ]
                 );
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
-        let (width, height) = frame.get_dimensions();
-        let matrix = [
-            [2.0 / width as f32, 0.0, 0.0, 0.0],
-            [0.0, 2.0 / height as f32, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-            ];
-        let uniforms = uniform! { icolor: self.turtle_color, matrix: matrix };
-        frame.draw(&vertex_buffer, &indices, &self.program, &uniforms, &Default::default());
+        let uniforms = uniform! { matrix: matrix };
+        frame.draw(&vertex_buffer, &indices, &self.program, &uniforms, &Default::default())
+            .unwrap();
     }
 
     /// Poll the window's events and handle them
