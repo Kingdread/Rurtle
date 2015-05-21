@@ -217,6 +217,7 @@ impl Parser {
         let number = Box::new(try!(self.parse_expression()));
         expect!(self, Token::KeyDo);
         let body = try!(self.parse_loop_body());
+        expect!(self, Token::KeyEnd);
         Ok(RepeatStatement(number, Box::new(body)))
     }
 
