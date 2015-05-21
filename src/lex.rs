@@ -51,6 +51,22 @@ pub enum Token {
     OpMul,
     /// Operator "division" /
     OpDiv,
+    /// Keyword "LEARN"
+    KeyLearn,
+    /// Keyword "DO"
+    KeyDo,
+    /// Keyword "ELSE"
+    KeyElse,
+    /// Keyword "REPEAT"
+    KeyRepeat,
+    /// Keyword "WHILE"
+    KeyWhile,
+    /// Keyword "IF"
+    KeyIf,
+    /// Keyword "END"
+    KeyEnd,
+    /// KeyWord "FOR"
+    KeyFor,
 }
 
 impl ::std::fmt::Display for Token {
@@ -142,13 +158,22 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
                     result.push(Token::OpGt);
                 }
             },
-            // Parse an identifier
+            // Parse an identifier or a keyword
             _ if c.is_alphabetic() => {
                 let mut word = c.to_string();
                 while !chars.is_empty() && chars[0].is_alphanumeric() {
                     word.push(chars.remove(0));
                 }
-                result.push(Token::Word(word));
+                result.push(match word.as_ref() {
+                    "LEARN" => Token::KeyLearn,
+                    "DO" => Token::KeyDo,
+                    "END" => Token::KeyEnd,
+                    "REPEAT" => Token::KeyRepeat,
+                    "FOR" => Token::KeyFor,
+                    "IF" => Token::KeyIf,
+                    "WHILE" => Token::KeyWhile,
+                    _ => Token::Word(word),
+                });
             },
             // Parse a number literal
             _ if c.is_numeric() => {
