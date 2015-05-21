@@ -14,7 +14,7 @@
 //! identifiers.
 
 /// A `Token` represents a "atom" block of the input source.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     /// An identifier, also called Word
     Word(String),
@@ -65,8 +65,10 @@ pub enum Token {
     KeyIf,
     /// Keyword "END"
     KeyEnd,
-    /// KeyWord "FOR"
+    /// Keyword "FOR"
     KeyFor,
+    /// Keyword "RETURN"
+    KeyReturn,
 }
 
 impl ::std::fmt::Display for Token {
@@ -172,6 +174,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
                     "FOR" => Token::KeyFor,
                     "IF" => Token::KeyIf,
                     "WHILE" => Token::KeyWhile,
+                    "RETURN" => Token::KeyReturn,
+                    "ELSE" => Token::KeyElse,
                     _ => Token::Word(word),
                 });
             },
