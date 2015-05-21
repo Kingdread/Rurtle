@@ -167,6 +167,7 @@ impl Parser {
             Token::KeyLearn => self.parse_learn_stmt(),
             Token::KeyIf => self.parse_if_stmt(),
             Token::KeyRepeat => self.parse_repeat_stmt(),
+            Token::KeyWhile => self.parse_while_stmt(),
             Token::KeyReturn => self.parse_return_stmt(),
             _ => self.parse_expression(),
         }
@@ -219,6 +220,15 @@ impl Parser {
         let body = try!(self.parse_loop_body());
         expect!(self, Token::KeyEnd);
         Ok(RepeatStatement(number, Box::new(body)))
+    }
+
+    fn parse_while_stmt(&mut self) -> ParseResult {
+        expect!(self, Token::KeyWhile);
+        let condition = Box::new(try!(self.parse_expression()));
+        expect!(self, Token::KeyDo);
+        let body = try!(self.parse_loop_body());
+        expect!(self, Token::KeyEnd);
+        Ok(WhileStatement(condition, Box::new(body)))
     }
 
     fn parse_return_stmt(&mut self) -> ParseResult {
