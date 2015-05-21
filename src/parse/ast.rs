@@ -62,7 +62,14 @@ impl Node {
                     Multiplication(Box::new(mul.flatten()), flatten_tuple(factors))
                 }
             }
-            StatementList(stmts) => StatementList(flatten(stmts)),
+            StatementList(mut stmts) => {
+                if stmts.len() == 1 {
+                    stmts.remove(0).flatten()
+                } else {
+                    StatementList(flatten(stmts))
+                }
+            },
+            List(elements) => List(flatten(elements)),
             IfStatement(cond, true_body, false_body) => {
                 if let Some(stmt) = false_body {
                     IfStatement(Box::new(cond.flatten()), Box::new(true_body.flatten()),
