@@ -18,6 +18,7 @@ pub enum Node {
     Multiplication(Box<Node>, Vec<(MulOp, Box<Node>)>),
     /// A function call (function, arguments)
     FuncCall(String, Vec<Box<Node>>),
+    ReturnStatement(Box<Node>),
     List(Vec<Box<Node>>),
     StringLiteral(String),
     Number(f32),
@@ -79,6 +80,7 @@ impl Node {
             Comparison(operand1, op, operand2) => Comparison(Box::new(operand1.flatten()),
                                                              op,
                                                              Box::new(operand2.flatten())),
+            ReturnStatement(value) => ReturnStatement(Box::new(value.flatten())),
             FuncCall(name, args) => FuncCall(name, flatten(args)),
             node => node,
         }

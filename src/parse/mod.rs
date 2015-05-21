@@ -17,11 +17,12 @@
 //!
 //! ```text
 //! root := {statement} ;
-//! statement := learn-def | if-stmt | repeat-stmt | while-stmt | expression ;
+//! statement := learn-def | if-stmt | repeat-stmt | while-stmt | return-stmt | expression ;
 //! learn-def := 'LEARN' identifier {variable} 'DO' {statement} 'END' ;
 //! if-stmt := 'IF' expression 'DO' {statement} ['ELSE' {statement}]'END' ;
 //! repeat-stmt := 'REPEAT' expression 'DO' {statement} 'END' ;
 //! while-stmt := 'WHILE' expression 'DO' {statement} 'END' ;
+//! return-stmt := 'RETURN' expression ;
 //! variable := ':' identifier ;
 //! identifier := idenfitier-start {identifier-cont} ;
 //! idenfitier-start := <any alphabetic character> ;
@@ -166,6 +167,7 @@ impl Parser {
             Token::KeyLearn => self.parse_learn_stmt(),
             Token::KeyIf => self.parse_if_stmt(),
             Token::KeyRepeat => self.parse_repeat_stmt(),
+            Token::KeyReturn => self.parse_return_stmt(),
             _ => self.parse_expression(),
         }
     }
@@ -216,6 +218,12 @@ impl Parser {
         expect!(self, Token::KeyDo);
         let body = try!(self.parse_loop_body());
         Ok(RepeatStatement(number, Box::new(body)))
+    }
+
+    fn parse_return_stmt(&mut self) -> ParseResult {
+        expect!(self, Token::KeyReturn);
+        let result = Box::new(try!(self.parse_expression()));
+        Ok(ReturnStatement(result))
     }
 
     fn parse_expression(&mut self) -> ParseResult {
