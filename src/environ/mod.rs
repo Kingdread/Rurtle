@@ -6,13 +6,10 @@
 //! functions in the Rurtle language.
 pub mod functions;
 pub mod value;
+pub mod stack;
 use self::value::Value;
 use super::parse::ast::{Node, AddOp, MulOp, CompOp};
 use std::collections::HashMap;
-
-pub struct Environment {
-    functions: HashMap<String, Function>,
-}
 
 #[derive(Debug, Clone)]
 pub struct RuntimeError(String);
@@ -60,11 +57,17 @@ impl Clone for Function {
     }
 }
 
+pub struct Environment {
+    functions: HashMap<String, Function>,
+    stack: Vec<stack::Frame>,
+}
+
 impl Environment {
     /// Construct a new `Environment` with default values
     pub fn new() -> Environment {
         Environment {
             functions: functions::default_functions(),
+            stack: stack::new_stack(),
         }
     }
 
@@ -90,6 +93,9 @@ impl Environment {
     /// Evaluate the given AST node
     pub fn eval(&mut self, node: &Node) -> ResultType {
         use super::parse::ast::Node::*;
+        if self.current_frame().should_return {
+            return Ok(Value::Nothing);
+        }
         match *node {
             StatementList(ref nodes) =>
                 self.eval_statement_list(nodes),
@@ -109,16 +115,16 @@ impl Environment {
                 self.eval_multiplication(start, values),
             FuncCall(ref name, ref args) =>
                 self.eval_func_call(name, args),
-            ReturnStatement(_) =>
-                panic!("Return not yet implemented"),
+            ReturnStatement(ref value) =>
+                self.eval_return_statement(value),
             List(ref elements) =>
                 self.eval_list(elements),
             StringLiteral(ref string) =>
                 Ok(Value::String(string.clone())),
             Number(num) =>
                 Ok(Value::Number(num)),
-            Variable(_) =>
-                panic!("Variables not yet implemented"),
+            Variable(ref name) =>
+                self.eval_variable(name),
         }
     }
 
@@ -229,8 +235,42 @@ impl Environment {
             Function::Native(_, ref f) => {
                 f(self, &args)
             },
-            _ => panic!("Calling defined functions is not yet possible"),
+            Function::Defined(ref node) => {
+                match *node {
+                    Node::LearnStatement(ref name, ref arg_names, ref body) =>
+                        self.call_defined_function(name, arg_names, args, body),
+                    _ => panic!("Defined function is no LearnStatement"),
+                }
+            }
         }
+    }
+
+    fn call_defined_function(&mut self, name: &String, arg_names: &Vec<String>,
+                             args: Vec<Value>, body: &Node)
+                             -> ResultType
+    {
+        let mut frame = stack::Frame::default();
+        frame.fn_name = name.clone();
+        for (name, value) in arg_names.iter().zip(args) {
+            frame.locals.insert(name.clone(), value);
+        }
+        self.stack.push(frame);
+        try!(self.eval(body));
+        frame = self.stack.pop().unwrap();
+        match frame.return_value {
+            Some(value) => Ok(value),
+            None => Ok(Value::Nothing),
+        }
+    }
+
+    fn eval_return_statement(&mut self, value: &Node) -> ResultType {
+        if self.current_frame().is_global {
+            return Err(RuntimeError("Return not in a function".to_string()));
+        }
+        let value = try!(self.eval(value));
+        self.current_frame().return_value = Some(value);
+        self.current_frame().should_return = true;
+        Ok(Value::Nothing)
     }
 
     fn eval_list(&mut self, elements: &Vec<Node>) -> ResultType {
@@ -239,5 +279,41 @@ impl Environment {
             result.push(try!(self.eval(node)));
         }
         Ok(Value::List(result))
+    }
+
+    fn eval_variable(&mut self, name: &String) -> ResultType {
+        match self.get_variable(name) {
+            Some(value) => Ok(value),
+            None => Err(RuntimeError(format!("Variable {} not found", name))),
+        }
+    }
+
+    /// Return the current stack frame or the global frame if the code is not
+    /// executing in a function
+    pub fn current_frame(&mut self) -> &mut stack::Frame {
+        let len = self.stack.len();
+        &mut self.stack[len - 1]
+    }
+
+    /// Return the global frame
+    pub fn global_frame(&mut self) -> &mut stack::Frame {
+        &mut self.stack[0]
+    }
+
+    /// Retrieve the value for the variable with the given name
+    ///
+    /// The variable is searched in the current function's local variables. If
+    /// it is not defined there, the global namespace will be searched. If the
+    /// variable is not found there either, `None` is returned.
+    pub fn get_variable(&mut self, name: &str) -> Option<Value> {
+        {
+            let local_frame = self.current_frame();
+            match local_frame.locals.get(name) {
+                Some(value) => return Some(value.clone()),
+                None => (),
+            }
+        }
+        let global_frame = self.global_frame();
+        global_frame.locals.get(name).map(|v| v.clone())
     }
 }
