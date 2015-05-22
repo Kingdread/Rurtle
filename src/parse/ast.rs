@@ -91,6 +91,39 @@ pub enum CompOp {
     Equal, Less, Greater, LessEqual, GreaterEqual, NotEqual,
 }
 
+macro_rules! okay {
+    ($s:expr => $($p:pat), *) => {
+        {
+            match *$s {
+                $($p => true,)*
+                _ => false,
+            }
+        }
+    }
+}
+
+impl CompOp {
+    /// Returns true if CompOp self includes the given Ordering, that is the
+    /// CompOp should return true if it compares two elements with the given
+    /// Ordering
+    ///
+    /// ```
+    /// # use rurtle::parse::ast::CompOp;
+    /// use std::cmp::Ordering;
+    /// assert_eq!(CompOp::Equal.matches(&Ordering::Equal), true);
+    /// assert_eq!(CompOp::Greater.matches(&Ordering::Less), false);
+    /// ```
+    pub fn matches(&self, ord: &::std::cmp::Ordering) -> bool {
+        use std::cmp::Ordering;
+        use self::CompOp::*;
+        match *ord {
+            Ordering::Less => okay!(self => Less, LessEqual, NotEqual),
+            Ordering::Equal => okay!(self => Equal, LessEqual, GreaterEqual),
+            Ordering::Greater => okay!(self => Greater, GreaterEqual, NotEqual),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum AddOp { Add, Sub }
 #[derive(Debug, Copy, Clone)]
