@@ -1,7 +1,7 @@
 #[derive(Debug, Clone)]
 pub enum Node {
     /// A list of statements as found inside a loop body
-    StatementList(Vec<Box<Node>>),
+    StatementList(Vec<Node>),
     /// The if conditional (expression, true-clause, maybe false-clause)
     IfStatement(Box<Node>, Box<Node>, Option<Box<Node>>),
     /// The repeat statement (count, loop body)
@@ -12,35 +12,26 @@ pub enum Node {
     LearnStatement(String, Vec<String>, Box<Node>),
     Comparison(Box<Node>, CompOp, Box<Node>),
     /// Addition or subtraction. One addition may hold more than one operation.
-    Addition(Box<Node>, Vec<(AddOp, Box<Node>)>),
+    Addition(Box<Node>, Vec<(AddOp, Node)>),
     /// Multiplication and division. One multiplication may hole more than one
     /// operation.
-    Multiplication(Box<Node>, Vec<(MulOp, Box<Node>)>),
+    Multiplication(Box<Node>, Vec<(MulOp, Node)>),
     /// A function call (function, arguments)
-    FuncCall(String, Vec<Box<Node>>),
+    FuncCall(String, Vec<Node>),
     ReturnStatement(Box<Node>),
-    List(Vec<Box<Node>>),
+    List(Vec<Node>),
     StringLiteral(String),
     Number(f32),
     Variable(String),
 }
 
 /// Helper function to flatten a vector of boxes to nodes
-fn flatten(mut input: Vec<Box<Node>>) -> Vec<Box<Node>> {
-    let mut result = Vec::new();
-    while !input.is_empty() {
-        result.push(Box::new(input.remove(0).flatten()));
-    }
-    result
+fn flatten(input: Vec<Node>) -> Vec<Node> {
+    input.into_iter().map(|n| n.flatten()).collect()
 }
 
-fn flatten_tuple<T>(mut input: Vec<(T, Box<Node>)>) -> Vec<(T, Box<Node>)> {
-    let mut result = Vec::new();
-    while !input.is_empty() {
-        let (op, elem) = input.remove(0);
-        result.push((op, Box::new(elem.flatten())));
-    }
-    result
+fn flatten_tuple<T>(input: Vec<(T, Node)>) -> Vec<(T, Node)> {
+    input.into_iter().map(|(o, n)| (o, n.flatten())).collect()
 }
 
 impl Node {

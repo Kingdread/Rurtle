@@ -143,7 +143,7 @@ impl Parser {
         let mut statements = Vec::new();
         while !self.tokens.is_empty() {
             let statement = try!(self.parse_statement());
-            statements.push(Box::new(statement));
+            statements.push(statement);
         }
         Ok(StatementList(statements))
     }
@@ -154,7 +154,7 @@ impl Parser {
             match self.peek() {
                 Token::KeyElse | Token::KeyEnd => break,
                 _ => {
-                    statements.push(Box::new(try!(self.parse_statement())));
+                    statements.push(try!(self.parse_statement()));
                 },
             }
         }
@@ -276,7 +276,7 @@ impl Parser {
                         Token::OpMinus => AddOp::Sub,
                         _ => unreachable!(),
                     };
-                    addends.push((op, Box::new(try!(self.parse_product()))));
+                    addends.push((op, try!(self.parse_product())));
                 },
                 _ => break,
             }
@@ -295,7 +295,7 @@ impl Parser {
                         Token::OpDiv => MulOp::Div,
                         _ => unreachable!(),
                     };
-                    factors.push((op, Box::new(try!(self.parse_factor()))));
+                    factors.push((op, try!(self.parse_factor())));
                 },
                 _ => break,
             }
@@ -319,7 +319,7 @@ impl Parser {
                     if let Token::RBracket = self.peek() {
                         break
                     }
-                    list.push(Box::new(try!(self.parse_expression())));
+                    list.push(try!(self.parse_expression()));
                 }
                 expect!(self, Token::RBracket);
                 Ok(List(list))
@@ -340,7 +340,7 @@ impl Parser {
                 };
                 let mut arguments = Vec::new();
                 for _ in (0..argument_count) {
-                    arguments.push(Box::new(try!(self.parse_expression())));
+                    arguments.push(try!(self.parse_expression()));
                 }
                 Ok(FuncCall(name, arguments))
             },
