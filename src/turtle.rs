@@ -68,8 +68,8 @@ impl Turtle {
     }
 
     /// Return a reference to the underlaying `TurtleScreen` object
-    pub fn get_screen(&self) -> &TurtleScreen {
-        &self.screen
+    pub fn get_screen(&mut self) -> &mut TurtleScreen {
+        &mut self.screen
     }
 
     /// Turn the turtle by the given amount. Positive means counter-clockwise,
