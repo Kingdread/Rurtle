@@ -9,6 +9,7 @@ pub mod value;
 pub mod stack;
 use self::value::Value;
 use super::parse::ast::{Node, AddOp, MulOp, CompOp};
+use super::turtle;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -60,15 +61,21 @@ impl Clone for Function {
 pub struct Environment {
     functions: HashMap<String, Function>,
     stack: Vec<stack::Frame>,
+    turtle: turtle::Turtle,
 }
 
 impl Environment {
     /// Construct a new `Environment` with default values
-    pub fn new() -> Environment {
+    pub fn new(turtle: turtle::Turtle) -> Environment {
         Environment {
             functions: functions::default_functions(),
             stack: stack::new_stack(),
+            turtle: turtle,
         }
+    }
+
+    pub fn get_turtle(&mut self) -> &mut turtle::Turtle {
+        &mut self.turtle
     }
 
     /// Return a map mapping the function name to the argument count. Useful for
@@ -88,6 +95,25 @@ impl Environment {
             result.insert(name.clone(), count);
         }
         result
+    }
+
+    /// Tokenize, parse and evaluate the given source
+    pub fn eval_source(&mut self, source: &str) -> Result<Value, Box<::std::error::Error>> {
+        use super::lex;
+        use super::parse;
+        let tokens = match lex::tokenize(source) {
+            Ok(t) => t,
+            Err(e) => return Err(Box::new(e)),
+        };
+        let mut parser = parse::Parser::new(tokens, self.function_arg_count());
+        let tree = match parser.parse() {
+            Ok(n) => n.flatten(),
+            Err(e) => return Err(Box::new(e)),
+        };
+        match self.eval(&tree) {
+            Ok(v) => return Ok(v),
+            Err(e) => return Err(Box::new(e)),
+        };
     }
 
     /// Evaluate the given AST node
