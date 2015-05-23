@@ -179,7 +179,7 @@ impl Parser {
     fn parse_learn_stmt(&mut self) -> ParseResult {
         expect!(self, Token::KeyLearn);
         let name = match pop_left!(self) {
-            Token::Word(string) => string,
+            Token::Word(string) => string.to_uppercase(),
             token => return Err(ParseError::UnexpectedToken("Token::Word", token)),
         };
         let mut variables = Vec::new();
@@ -337,7 +337,7 @@ impl Parser {
             },
             // A function call
             Token::Word(name) => {
-                let argument_count = match self.functions.get(&name) {
+                let argument_count = match self.functions.get(&name.to_uppercase()) {
                     Some(i) => *i,
                     None => return Err(ParseError::UnknownFunction(name)),
                 };

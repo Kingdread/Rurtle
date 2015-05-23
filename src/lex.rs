@@ -166,7 +166,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
                 while !chars.is_empty() && chars[0].is_alphanumeric() {
                     word.push(chars.remove(0));
                 }
-                result.push(match word.as_ref() {
+                result.push(match word.to_uppercase().as_ref() {
                     "LEARN" => Token::KeyLearn,
                     "DO" => Token::KeyDo,
                     "END" => Token::KeyEnd,

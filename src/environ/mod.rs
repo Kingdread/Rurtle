@@ -252,7 +252,7 @@ impl Environment {
     }
 
     fn eval_func_call(&mut self, name: &String, args: &Vec<Node>) -> ResultType {
-        let function = match self.functions.get(name) {
+        let function = match self.functions.get(&name.to_uppercase()) {
             Some(f) => f.clone(),
             None => return Err(RuntimeError(format!("function {} not found", name))),
         };
