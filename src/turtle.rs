@@ -89,6 +89,12 @@ impl Turtle {
         (-delta_x, delta_y)
     }
 
+    /// Clear the screen. Note that this only removes the drawn lines, it does
+    /// not change the turtle's position or orientation.
+    pub fn clear(&mut self) {
+        self.screen.clear();
+    }
+
     /// Move the turtle forward by the given length
     pub fn forward(&mut self, length: f32) {
         let (x, y) = self.position;

@@ -122,6 +122,12 @@ impl TurtleScreen {
         self.lines.push(Line(start.0, start.1, end.0, end.1, color));
     }
 
+    /// Remove all drawn lines. Note that this does not change the turtle's
+    /// position, color or orientation.
+    pub fn clear(&mut self) {
+        self.lines.clear();
+    }
+
     /// Draw everything and update the screen
     pub fn draw_and_update(&self) {
         let mut frame = self.window.draw();
