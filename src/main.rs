@@ -67,6 +67,12 @@ fn main() {
         }
         thread::sleep_ms(1000 / 15);
     };
-    end_signaler.send(()).unwrap();
+    // We don't really care about the result since the end_signal may already be
+    // dropped (e.g. if we got EOF'd). The signal is then unnecessary and the
+    // second thread is already dead. We just want the compiler to shut up about
+    // "unused result which must be used" :)
+    match end_signaler.send(()) {
+        _ => (),
+    }
     guard.join();
 }
