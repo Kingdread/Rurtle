@@ -6,8 +6,8 @@ use std::collections::HashMap;
 // Example function.
 //
 // The first argument is the `Environment` in which the function is called, the
-// second argument is a `Vec` of the passed arguments.
-fn hello_world(_: &mut Environment, args: &Vec<Value>) -> ResultType {
+// second argument is are the (already evaluated) arguments.
+fn hello_world(_: &mut Environment, args: &[Value]) -> ResultType {
     match args[0] {
         Value::String(ref s) => {
             println!("Hello, {}", s);

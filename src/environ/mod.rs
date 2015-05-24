@@ -33,7 +33,7 @@ pub type ResultType = Result<Value, RuntimeError>;
 ///
 /// The first parameter is the Environment in which the function is executed and
 /// the second argument are the function's parameters.
-pub type FuncType = fn(&mut Environment, &Vec<Value>) -> ResultType;
+pub type FuncType = fn(&mut Environment, &[Value]) -> ResultType;
 
 /// A function available to Rurtle programs can either be a function defined in
 /// a Rurtle program or a native function of FuncType
@@ -256,7 +256,7 @@ impl Environment {
             Some(f) => f.clone(),
             None => return Err(RuntimeError(format!("function {} not found", name))),
         };
-        let args = args.iter().map(|n| self.eval(n).unwrap()).collect();
+        let args: Vec<Value> = args.iter().map(|n| self.eval(n).unwrap()).collect();
         match function {
             Function::Native(_, ref f) => {
                 f(self, &args)
