@@ -16,6 +16,7 @@
 //! `Nothing`: Something like Python's `None`, this is the default value for
 //! everything that doesn't explicitely return something else.
 use std::ops;
+use std::fmt;
 /// Enum combining the possible Rurtle value types
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
@@ -48,6 +49,26 @@ impl Value {
             Value::String(_) => "string",
             Value::List(_) => "list",
             Value::Nothing => "nothing",
+        }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match *self {
+            Value::Number(x) => x.fmt(fmt),
+            Value::String(ref s) => s.fmt(fmt),
+            Value::List(ref l) => {
+                try!(fmt.pad("["));
+                let mut first = true;
+                for value in l {
+                    if !first { try!(fmt.pad(" ")) };
+                    first = false;
+                    try!(value.fmt(fmt));
+                }
+                fmt.pad("]")
+            },
+            Value::Nothing => fmt.pad("Nothing"),
         }
     }
 }
