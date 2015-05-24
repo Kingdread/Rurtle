@@ -119,6 +119,24 @@ fn turtle_realign(env: &mut Environment, args: &[Value]) -> ResultType {
     })
 }
 
+fn env_make(env: &mut Environment, args: &[Value]) -> ResultType {
+    if let Value::String(ref name) = args[0] {
+        env.current_frame().locals.insert(name.clone(), args[1].clone());
+        Ok(Value::Nothing)
+    } else {
+        Err(RuntimeError(format!("invalid argument: {:?}", args[1])))
+    }
+}
+
+fn env_global(env: &mut Environment, args: &[Value]) -> ResultType {
+    if let Value::String(ref name) = args[0] {
+        env.global_frame().locals.insert(name.clone(), args[1].clone());
+        Ok(Value::Nothing)
+    } else {
+        Err(RuntimeError(format!("invalid argument: {:?}", args[1])))
+    }
+}
+
 /// A helpful macro to construct a `HashMap`
 macro_rules! map {
     ($($k:expr => $v:expr,) *) => {
@@ -146,5 +164,9 @@ pub fn default_functions() -> HashMap<String, Function> {
         "PENUP" => Native(0, turtle_penup),
         "HOME" => Native(0, turtle_home),
         "REALIGN" => Native(1, turtle_realign),
+
+        // Environment functions to set variables
+        "MAKE" => Native(2, env_make),
+        "GLOBAL" => Native(2, env_global),
     }
 }
