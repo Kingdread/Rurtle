@@ -251,12 +251,15 @@ impl Environment {
         Ok(accum)
     }
 
-    fn eval_func_call(&mut self, name: &String, args: &Vec<Node>) -> ResultType {
+    fn eval_func_call(&mut self, name: &String, arg_nodes: &Vec<Node>) -> ResultType {
         let function = match self.functions.get(&name.to_uppercase()) {
             Some(f) => f.clone(),
             None => return Err(RuntimeError(format!("function {} not found", name))),
         };
-        let args: Vec<Value> = args.iter().map(|n| self.eval(n).unwrap()).collect();
+        let mut args: Vec<Value> = Vec::new();
+        for node in arg_nodes {
+            args.push(try!(self.eval(node)));
+        }
         match function {
             Function::Native(_, ref f) => {
                 f(self, &args)
