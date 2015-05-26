@@ -75,15 +75,15 @@ impl ::std::fmt::Display for Token {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
         use self::Token::*;
         let debug = format!("{:?}", self);
-        fmt.pad(match self {
-            &Word(_) => "word",
-            &Number(_) => "number",
-            &LBracket => "left bracket",
-            &RBracket => "right bracket",
-            &LParens => "left parenthesis",
-            &RParens => "right parenthesis",
-            &Colon => "colon",
-            &String(_) => "string literal",
+        fmt.pad(match *self {
+            Word(_) => "word",
+            Number(_) => "number",
+            LBracket => "left bracket",
+            RBracket => "right bracket",
+            LParens => "left parenthesis",
+            RParens => "right parenthesis",
+            Colon => "colon",
+            String(_) => "string literal",
             _ => &debug,
         })
     }
@@ -100,13 +100,13 @@ pub enum LexError {
 }
 impl ::std::fmt::Display for LexError {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        match self {
-            &LexError::UnterminatedString => fmt.pad("unterminated string"),
-            &LexError::InvalidNumber(ref s) => {
+        match *self {
+            LexError::UnterminatedString => fmt.pad("unterminated string"),
+            LexError::InvalidNumber(ref s) => {
                 let s = format!("invalid number: {}", s);
                 fmt.pad(&s)
             },
-            &LexError::UnexpectedCharacter(which) => {
+            LexError::UnexpectedCharacter(which) => {
                 try!(fmt.pad("unexpected character: "));
                 fmt.pad(&which.to_string())
             },
@@ -115,10 +115,10 @@ impl ::std::fmt::Display for LexError {
 }
 impl ::std::error::Error for LexError {
     fn description(&self) -> &str {
-        match self {
-            &LexError::UnterminatedString => "closing quotes are missing",
-            &LexError::InvalidNumber(_) => "invalid number literal",
-            &LexError::UnexpectedCharacter(_) => "unexpected character",
+        match *self {
+            LexError::UnterminatedString => "closing quotes are missing",
+            LexError::InvalidNumber(_) => "invalid number literal",
+            LexError::UnexpectedCharacter(_) => "unexpected character",
         }
     }
 }

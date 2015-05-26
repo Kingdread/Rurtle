@@ -1,3 +1,7 @@
+//! This module contains predefined functions for the Rurtle environment.
+//!
+//! All functions that should be "built in" into the Rurtle language (all the
+//! fundamental stuff) are defined here or in submodules.
 use super::{Environment, Function, ResultType, RuntimeError};
 use super::value::Value;
 use super::Function::Native;

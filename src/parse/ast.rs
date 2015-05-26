@@ -1,3 +1,12 @@
+//! Abstract Syntax Tree
+//!
+//! The `ast` module defines types to represent and work with the abstract
+//! syntax tree of the Rurtle language. An AST is produced by parsing some token
+//! stream.
+//!
+//! The ast itself does not provide any methods to run or evaluate the program,
+//! it is merely a method to represent the program in memory. See the
+//! `environ::Environment::eval` method to find a way to execute the program.
 #[derive(Debug, Clone)]
 pub enum Node {
     /// A list of statements as found inside a loop body

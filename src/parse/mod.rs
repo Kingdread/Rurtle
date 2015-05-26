@@ -63,16 +63,16 @@ pub enum ParseError {
 impl ::std::fmt::Display for ParseError {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
         use self::ParseError::*;
-        match self {
-            &UnexpectedToken(expected, ref got) => {
+        match *self {
+            UnexpectedToken(expected, ref got) => {
                 try!(fmt.pad("unexpected token, expected '"));
                 try!(fmt.pad(expected));
                 try!(fmt.pad("', got '"));
                 try!(got.fmt(fmt));
                 fmt.pad("'")
             },
-            &UnexpectedEnd => fmt.pad("unexpected end"),
-            &UnknownFunction(ref name) => {
+            UnexpectedEnd => fmt.pad("unexpected end"),
+            UnknownFunction(ref name) => {
                 try!(fmt.pad("unknown function: "));
                 name.fmt(fmt)
             }
@@ -83,10 +83,10 @@ impl ::std::fmt::Display for ParseError {
 impl ::std::error::Error for ParseError {
     fn description(&self) -> &str {
         use self::ParseError::*;
-        match self {
-            &UnexpectedToken(..) => "unexpected token",
-            &UnexpectedEnd => "unexpected end of input",
-            &UnknownFunction(_) => "the parser doesn't know the function",
+        match *self {
+            UnexpectedToken(..) => "unexpected token",
+            UnexpectedEnd => "unexpected end of input",
+            UnknownFunction(_) => "the parser doesn't know the function",
         }
     }
 }
