@@ -7,6 +7,7 @@ pub mod turtle;
 pub mod lex;
 pub mod parse;
 pub mod environ;
+pub mod readline;
 
 use std::error::Error;
 use std::env;

@@ -18,3 +18,5 @@ pub use parse::Parser;
 
 pub mod environ;
 pub use environ::Environment;
+
+pub mod readline;
