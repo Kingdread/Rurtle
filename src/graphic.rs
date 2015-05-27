@@ -149,7 +149,7 @@ impl TurtleScreen {
         use self::color::to_array;
         let mut points: Vec<Point> = Vec::new();
         for line in self.lines.iter() {
-            let &Line(x1, y1, x2, y2, color) = line;
+            let Line(x1, y1, x2, y2, color) = *line;
             points.push(Point { coords: [x1, y1], color: to_array(color) });
             points.push(Point { coords: [x2, y2], color: to_array(color) });
         }
@@ -163,18 +163,18 @@ impl TurtleScreen {
     fn draw_turtle(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {
         // The turtle consists of 4 points (let tx, ty = turtle_position):
         // A: tx, ty
-        // B: tx + DELTA_OUT.0, ty - DELTA_OUT.1
+        // B: tx - DELTA_OUT.0, ty + DELTA_OUT.1
         // C: tx + DELTA_MID.0, ty + DELTA_MID.1
         // D: tx + DELTA_OUT.0, ty + DELTA_OUT.1
         //     A
         //
-        //     B
-        //  C     D
+        //     C
+        //  B     D
         use self::color::to_array;
         const DELTA_MID: (f32, f32) = (0.0, -10.0);
         const DELTA_OUT: (f32, f32) = (7.0, -13.0);
 
-        let (tx, ty) = (self.turtle_position.0, self.turtle_position.1);
+        let (tx, ty) = self.turtle_position;
         let orientation_rad = ::std::f32::consts::PI * self.turtle_orientation / 180.0;
         let sin_d = orientation_rad.sin();
         let cos_d = orientation_rad.cos();
@@ -222,7 +222,7 @@ impl TurtleScreen {
 
     /// Return if the window has been closed
     pub fn is_closed(&self) -> bool {
-        return self._is_closed || self.window.is_closed();
+        self._is_closed || self.window.is_closed()
     }
 
     /// Return the current screen as an image
