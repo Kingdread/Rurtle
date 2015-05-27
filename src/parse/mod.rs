@@ -35,7 +35,7 @@
 //! factor := '(' expression ')' | list | variable | string | number | (identifier {expression}) ;
 //! list := '[' {expression} ']' ;
 //! string := '"' {<any character>} '"' ;
-//! number := <any valid floating point number literal> ;
+//! number := ['+' | '-'] <any valid floating point number literal> ;
 //! ```
 pub mod ast;
 
@@ -349,6 +349,19 @@ impl Parser {
             },
             Token::String(string) => Ok(StringLiteral(string)),
             Token::Number(num) => Ok(Number(num)),
+            // Unary prefixes for numbers
+            Token::OpMinus => {
+                match self.pop_left() {
+                    Token::Number(num) => Ok(Number(-num)),
+                    token => Err(ParseError::UnexpectedToken("Token::Number", token)),
+                }
+            },
+            Token::OpPlus => {
+                match self.pop_left() {
+                    Token::Number(num) => Ok(Number(num)),
+                    token => Err(ParseError::UnexpectedToken("Token::Number", token)),
+                }
+            },
             token => Err(ParseError::UnexpectedToken("expression", token)),
         }
     }
