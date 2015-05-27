@@ -160,6 +160,10 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
                     result.push(Token::OpGt);
                 }
             },
+            // Ignore comments, i.e. everything from ; to the end of line
+            ';' => {
+                while !chars.is_empty() && chars.remove(0) != '\n' {}
+            },
             // Parse an identifier or a keyword
             _ if c.is_alphabetic() => {
                 let mut word = c.to_string();
