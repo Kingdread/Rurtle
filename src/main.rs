@@ -12,9 +12,11 @@ pub mod readline;
 use std::error::Error;
 use std::env;
 use std::fs;
-use std::io::{self, Read};
+use std::io::Read;
 use std::thread;
 use std::sync::mpsc;
+
+const PROMPT: &'static str = "Rurtle> ";
 
 fn main() {
     let screen = graphic::TurtleScreen::new((640, 640), "Rurtle");
@@ -30,32 +32,42 @@ fn main() {
         }
     };
     let (tx, rx) = mpsc::channel();
-    let (end_signaler, end_signal) = mpsc::channel();
+    // We use the hermes channel to make the "read thread" wait before printing
+    // the next prompt and to signal it when the window closed.
+    let (hermes_out, hermes_in) = mpsc::channel();
+
+    // Thread to do the blocking read so we can keep updating the window in the
+    // main thread
     let guard = thread::scoped(move || {
-        let mut stdin = io::stdin();
-        let mut buffer = [0u8; 128];
         loop {
-            if let Ok(_) = end_signal.try_recv() {
-                break;
-            };
-            let count = stdin.read(&mut buffer).unwrap();
-            if count == 0 { break; }
-            for i in (0..count) {
-                tx.send(buffer[i]).unwrap();
+            let input = readline::readline(PROMPT);
+            match input {
+                Some(string) => tx.send(string).unwrap(),
+                None => break,
             }
+            match hermes_in.recv() {
+                Ok(false) => (),
+                // Ok(true) means the window closed and we should exit
+                // Err(..) means the main thread is dead and we should exit
+                _ => break,
+            };
         }
     });
-    'out: loop {
-        let mut data = Vec::new();
-        loop {
-            use std::sync::mpsc::TryRecvError::*;
-            match rx.try_recv() {
-                Ok(c) => data.push(c),
-                Err(Empty) => break,
-                Err(Disconnected) => break 'out,
-            }
+
+    loop {
+        use std::sync::mpsc::TryRecvError::*;
+        let mut send_signal = false;
+        let source = match rx.try_recv() {
+            Ok(source) => {
+                send_signal = true;
+                source
+            },
+            Err(Empty) => "".to_string(),
+            Err(Disconnected) => break,
+        };
+        if !source.is_empty() {
+            readline::add_history(&source);
         }
-        let source = String::from_utf8_lossy(&data);
         if let Err(e) = environ.eval_source(&source) {
             println!("{}: {}", e.description(), e);
         }
@@ -63,8 +75,11 @@ fn main() {
         screen.draw_and_update();
         screen.handle_events();
         if screen.is_closed() {
-            println!("Window closed, press enter to exit...");
+            println!("\n\nWindow closed, press enter to exit...");
             break;
+        }
+        if send_signal {
+            hermes_out.send(false).unwrap();
         }
         thread::sleep_ms(1000 / 15);
     };
@@ -72,7 +87,7 @@ fn main() {
     // dropped (e.g. if we got EOF'd). The signal is then unnecessary and the
     // second thread is already dead. We just want the compiler to shut up about
     // "unused result which must be used" :)
-    match end_signaler.send(()) {
+    match hermes_out.send(true) {
         _ => (),
     }
     guard.join();
