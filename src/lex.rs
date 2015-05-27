@@ -123,6 +123,14 @@ impl ::std::error::Error for LexError {
     }
 }
 
+fn is_identifier_start(c: char) -> bool {
+    c.is_alphabetic() || c == '_'
+}
+
+fn is_identifier_cont(c: char) -> bool {
+    is_identifier_start(c) || c.is_alphanumeric()
+}
+
 /// Split the input String into single tokens. Strings in the input source are
 /// returned as a single token.
 pub fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
@@ -165,9 +173,9 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, LexError> {
                 while !chars.is_empty() && chars.remove(0) != '\n' {}
             },
             // Parse an identifier or a keyword
-            _ if c.is_alphabetic() => {
+            _ if is_identifier_start(c) => {
                 let mut word = c.to_string();
-                while !chars.is_empty() && chars[0].is_alphanumeric() {
+                while !chars.is_empty() && is_identifier_cont(chars[0]) {
                     word.push(chars.remove(0));
                 }
                 result.push(match word.to_uppercase().as_ref() {
