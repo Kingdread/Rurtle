@@ -92,5 +92,7 @@ pub fn default_functions() -> HashMap<String, Function> {
         // Environment functions to set variables
         "MAKE" => Native(2, env::make),
         "GLOBAL" => Native(2, env::global),
+        // Other environment functions
+        "SCREENSHOT" => Native(1, env::screenshot),
     }
 }
