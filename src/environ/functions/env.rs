@@ -33,3 +33,14 @@ pub fn screenshot(env: &mut Environment, args: &[Value]) -> ResultType {
         }
     })
 }
+
+pub fn prompt(_: &mut Environment, args: &[Value]) -> ResultType {
+    get_args!(args, arg Value::String(ref prompt_string), => {
+        // What?
+        let input = super::super::super::readline::readline(prompt_string);
+        match input {
+            Some(i) => Ok(Value::String(i)),
+            None => Err(RuntimeError("No input to get".to_string())),
+        }
+    })
+}

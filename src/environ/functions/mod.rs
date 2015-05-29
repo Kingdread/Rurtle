@@ -94,5 +94,6 @@ pub fn default_functions() -> HashMap<String, Function> {
         "GLOBAL" => Native(2, env::global),
         // Other environment functions
         "SCREENSHOT" => Native(1, env::screenshot),
+        "PROMPT" => Native(1, env::prompt),
     }
 }
