@@ -39,30 +39,32 @@
 //! ```
 pub mod ast;
 
-use super::lex::Token;
+use super::lex::{Token, MetaToken};
 use self::ast::{Node, AddOp, MulOp, CompOp};
 use self::ast::Node::*;
 use std::collections::HashMap;
+use std::{error, fmt};
 
 /// A `FuncMap` maps the name of a function to the number of arguments it takes
 pub type FuncMap = HashMap<String, i32>;
 
 /// A `Parser` builds an AST from the given input token stream.
 pub struct Parser {
-    tokens: Vec<Token>,
+    tokens: Vec<MetaToken>,
     functions: FuncMap,
+    last_line: u32,
 }
 
 #[derive(Debug)]
-pub enum ParseError {
+pub enum ParseErrorKind {
     UnexpectedToken(&'static str, Token),
     UnexpectedEnd,
     UnknownFunction(String),
 }
 
-impl ::std::fmt::Display for ParseError {
-    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        use self::ParseError::*;
+impl fmt::Display for ParseErrorKind {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        use self::ParseErrorKind::*;
         match *self {
             UnexpectedToken(expected, ref got) => {
                 try!(fmt.pad("unexpected token, expected '"));
@@ -80,41 +82,50 @@ impl ::std::fmt::Display for ParseError {
     }
 }
 
-impl ::std::error::Error for ParseError {
+// Error returns are pretty long anyway
+use self::ParseErrorKind::*;
+
+#[derive(Debug)]
+pub struct ParseError {
+    line_number: u32,
+    kind: ParseErrorKind,
+}
+impl fmt::Display for ParseError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        let text = format!("Error in line {}: {}", self.line_number, self.kind);
+        fmt.pad(&text)
+    }
+}
+impl error::Error for ParseError {
     fn description(&self) -> &str {
-        use self::ParseError::*;
-        match *self {
+        match self.kind {
             UnexpectedToken(..) => "unexpected token",
-            UnexpectedEnd => "unexpected end of input",
-            UnknownFunction(_) => "the parser doesn't know the function",
+            UnexpectedEnd(..) => "unexpected end",
+            UnknownFunction(..) => "unknown function",
         }
     }
 }
 
 pub type ParseResult = Result<Node, ParseError>;
 
-macro_rules! expect {
-    ($s:expr, $t:path) => {
-        {
-            if $s.tokens.is_empty() {
-                return Err(ParseError::UnexpectedEnd);
-            };
-            let token = $s.pop_left();
-            match token {
-                $t(..) => (),
-                _ => return Err(ParseError::UnexpectedToken(stringify!($t), token)),
-            }
-        }
+/// Always returns an `Err` value but attaches the required meta information
+/// (such as line number)
+macro_rules! parse_error {
+    ($s:expr, $k:expr) => {
+        return Err(ParseError {
+            line_number: $s.last_line,
+            kind: $k,
+        })
     }
 }
 
-macro_rules! pop_left {
-    ($s:expr) => {
+macro_rules! expect {
+    ($s:expr, $t:path) => {
         {
-            if $s.tokens.is_empty() {
-                return Err(ParseError::UnexpectedEnd)
-            } else {
-                $s.pop_left()
+            let token = try!($s.pop_left());
+            match token {
+                $t(..) => (),
+                _ => parse_error!($s, UnexpectedToken(stringify!($t), token)),
             }
         }
     }
@@ -122,10 +133,11 @@ macro_rules! pop_left {
 
 impl Parser {
     /// Construct a new `Parser`, consuming the given tokens.
-    pub fn new(tokens: Vec<Token>, functions: FuncMap) -> Parser {
+    pub fn new(tokens: Vec<MetaToken>, functions: FuncMap) -> Parser {
         Parser {
             tokens: tokens,
             functions: functions,
+            last_line: 0,
         }
     }
 
@@ -135,11 +147,17 @@ impl Parser {
     }
 
     fn peek(&self) -> Token {
-        self.tokens[0].clone()
+        self.tokens[0].token.clone()
     }
 
-    fn pop_left(&mut self) -> Token {
-        self.tokens.remove(0)
+    fn pop_left(&mut self) -> Result<Token, ParseError> {
+        if self.tokens.is_empty() {
+            parse_error!(self, UnexpectedEnd)
+        } else {
+            let meta = self.tokens.remove(0);
+            self.last_line = meta.line_number;
+            Ok(meta.token)
+        }
     }
 
     fn parse_statement_list(&mut self) -> ParseResult {
@@ -178,21 +196,21 @@ impl Parser {
 
     fn parse_learn_stmt(&mut self) -> ParseResult {
         expect!(self, Token::KeyLearn);
-        let name = match pop_left!(self) {
+        let name = match try!(self.pop_left()) {
             Token::Word(string) => string.to_uppercase(),
-            token => return Err(ParseError::UnexpectedToken("Token::Word", token)),
+            token => parse_error!(self, UnexpectedToken("Token::Word", token)),
         };
         let mut variables = Vec::new();
         while !self.tokens.is_empty() {
-            match pop_left!(self) {
+            match try!(self.pop_left()) {
                 Token::Colon => {
-                    match pop_left!(self) {
+                    match try!(self.pop_left()) {
                         Token::Word(s) => variables.push(s),
-                        token => return Err(ParseError::UnexpectedToken("Token::Word", token)),
+                        token => parse_error!(self, UnexpectedToken("Token::Word", token)),
                     }
                 },
                 Token::KeyDo => break,
-                token => return Err(ParseError::UnexpectedToken("Token::KeyDo", token)),
+                token => parse_error!(self, UnexpectedToken("Token::KeyDo", token)),
             }
         }
         // We need the argument count for this function if it appears later
@@ -209,7 +227,7 @@ impl Parser {
         expect!(self, Token::KeyDo);
         let true_body = Box::new(try!(self.parse_loop_body()));
         let false_body = if let Token::KeyElse = self.peek() {
-            self.pop_left();
+            try!(self.pop_left());
             Some(Box::new(try!(self.parse_loop_body())))
         } else { None };
         expect!(self, Token::KeyEnd);
@@ -252,7 +270,7 @@ impl Parser {
         match self.peek() {
             Token::OpEq | Token::OpLt | Token::OpGt |
             Token::OpLe | Token::OpGe | Token::OpNe => {
-                let op = match self.pop_left() {
+                let op = match try!(self.pop_left()) {
                     Token::OpEq => CompOp::Equal,
                     Token::OpLt => CompOp::Less,
                     Token::OpGt => CompOp::Greater,
@@ -274,7 +292,7 @@ impl Parser {
         while !self.tokens.is_empty() {
             match self.peek() {
                 Token::OpPlus | Token::OpMinus => {
-                    let op = match self.pop_left() {
+                    let op = match try!(self.pop_left()) {
                         Token::OpPlus => AddOp::Add,
                         Token::OpMinus => AddOp::Sub,
                         _ => unreachable!(),
@@ -293,7 +311,7 @@ impl Parser {
         while !self.tokens.is_empty() {
             match self.peek() {
                 Token::OpMul | Token::OpDiv => {
-                    let op = match self.pop_left() {
+                    let op = match try!(self.pop_left()) {
                         Token::OpMul => MulOp::Mul,
                         Token::OpDiv => MulOp::Div,
                         _ => unreachable!(),
@@ -308,9 +326,9 @@ impl Parser {
 
     fn parse_factor(&mut self) -> ParseResult {
         if self.tokens.is_empty() {
-            return Err(ParseError::UnexpectedEnd);
+            parse_error!(self, UnexpectedEnd);
         };
-        match self.pop_left() {
+        match try!(self.pop_left()) {
             Token::LParens => {
                 let factor = try!(self.parse_expression());
                 expect!(self, Token::RParens);
@@ -329,17 +347,17 @@ impl Parser {
             },
             Token::Colon => {
                 if let Token::Word(name) = self.peek() {
-                    self.pop_left();
+                    try!(self.pop_left());
                     Ok(Variable(name))
                 } else {
-                    Err(ParseError::UnexpectedToken("Token::Word", self.pop_left()))
+                    parse_error!(self, UnexpectedToken("Token::Word", try!(self.pop_left())))
                 }
             },
             // A function call
             Token::Word(name) => {
                 let argument_count = match self.functions.get(&name.to_uppercase()) {
                     Some(i) => *i,
-                    None => return Err(ParseError::UnknownFunction(name)),
+                    None => parse_error!(self, UnknownFunction(name)),
                 };
                 let mut arguments = Vec::new();
                 for _ in (0..argument_count) {
@@ -351,18 +369,18 @@ impl Parser {
             Token::Number(num) => Ok(Number(num)),
             // Unary prefixes for numbers
             Token::OpMinus => {
-                match self.pop_left() {
+                match try!(self.pop_left()) {
                     Token::Number(num) => Ok(Number(-num)),
-                    token => Err(ParseError::UnexpectedToken("Token::Number", token)),
+                    token => parse_error!(self, UnexpectedToken("Token::Number", token)),
                 }
             },
             Token::OpPlus => {
-                match self.pop_left() {
+                match try!(self.pop_left()) {
                     Token::Number(num) => Ok(Number(num)),
-                    token => Err(ParseError::UnexpectedToken("Token::Number", token)),
+                    token => parse_error!(self, UnexpectedToken("Token::Number", token)),
                 }
             },
-            token => Err(ParseError::UnexpectedToken("expression", token)),
+            token => parse_error!(self, UnexpectedToken("expression", token)),
         }
     }
 }

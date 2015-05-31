@@ -23,12 +23,13 @@ fn main() {
     let turtle = turtle::Turtle::new(screen);
     let mut environ = environ::Environment::new(turtle);
     for filename in env::args().skip(1) {
-        let mut file = fs::File::open(filename).unwrap();
+        let mut file = fs::File::open(&filename).unwrap();
         let mut source = String::new();
         file.read_to_string(&mut source).unwrap();
         if let Err(e) = environ.eval_source(&source) {
+            println!("[error] {}:", filename);
             println!("{}: {}", e.description(), e);
-            return;
+            return
         }
     };
     let (tx, rx) = mpsc::channel();
