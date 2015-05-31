@@ -60,6 +60,7 @@ macro_rules! get_args {
 
 mod turtle;
 mod env;
+mod types;
 
 /// A helpful macro to construct a `HashMap`
 macro_rules! map {
@@ -95,5 +96,17 @@ pub fn default_functions() -> HashMap<String, Function> {
         // Other environment functions
         "SCREENSHOT" => Native(1, env::screenshot),
         "PROMPT" => Native(1, env::prompt),
+
+        // Haskellesque names
+        "HEAD" => Native(1, types::head),
+        "TAIL" => Native(1, types::tail),
+        // Logo (alias) names
+        "FIRST" => Native(1, types::head),
+        "BUTFIRST" => Native(1, types::tail),
+        // other list functions
+        "LENGTH" => Native(1, types::length),
+        "ISEMPTY" => Native(1, types::isempty),
+        "GETINDEX" => Native(2, types::getindex),
+        "NOT" => Native(1, types::not),
     }
 }
