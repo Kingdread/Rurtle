@@ -431,8 +431,8 @@ Environment functions
 
 *global [name] [value]*: set the global variable [name] to [value]
 
-*screenshot [filename]*: save a screenshot of the drawing as [filename] (PNG
-format). **Warning**: This will overwrite [filename] if it exists already! Be
+*screenshot [filename]*: save a screenshot of the drawing as [filename] \(PNG
+format\). **Warning**: This will overwrite [filename] if it exists already! Be
 careful!
 
 *prompt [text]*: ask the user for input, displaying the given [text]
