@@ -1,0 +1,39 @@
+body {
+    font-family: "source serif pro","georgia","dejavu serif",serif;
+    margin-left: 5px;
+    margin-right: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    border-left: 5px dotted lightblue;
+    border-right: 5px dotted lightblue;
+}
+
+.title {
+    text-align: center;
+    text-decoration: double underline;
+}
+
+nav li {
+    list-style-type: none;
+}
+
+nav li:before {
+    content: "\1f422\a0";
+}
+
+a {
+    text-decoration: underline dotted;
+    color: inherit;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+pre {
+    font-family: "source code pro","dejavu sans mono",monospace;
+    margin-left: 30px;
+    margin-right: 30px;
+    border-left: 2px solid orange;
+    padding-left: 2px;
+}
