@@ -136,6 +136,7 @@ impl Turtle {
     pub fn set_color(&mut self, red: f32, green: f32, blue: f32) {
         self.color = (red, green, blue, 1.0);
         self.screen.turtle_color = self.color;
+        self.screen.draw_and_update();
     }
 
     /// Directly move the turtle to the given point without changing the
@@ -168,11 +169,13 @@ impl Turtle {
     /// Hide the turtle so it won't be drawn on the screen
     pub fn hide(&mut self) {
         self.screen.turtle_hidden = true;
+        self.screen.draw_and_update();
     }
 
     /// Show the turtle again after it has been hidden
     pub fn show(&mut self) {
         self.screen.turtle_hidden = false;
+        self.screen.draw_and_update();
     }
 
     /// Returns true if the turtle is currently hidden
