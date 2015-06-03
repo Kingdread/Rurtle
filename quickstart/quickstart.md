@@ -424,6 +424,10 @@ again
 *realign [angle]*: set the turtle's orientation to [angle], where 0 is north, 90
 is west, 180 is south and 270 is east.
 
+*hide*: Hide the turtle so it won't show on the screen
+
+*show*: Show the turtle again
+
 Environment functions
 ---------------------
 

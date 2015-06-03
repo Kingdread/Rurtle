@@ -164,4 +164,19 @@ impl Turtle {
     pub fn get_orientation(&self) -> f32 { self.orientation }
     /// Return the turtle's position
     pub fn get_position(&self) -> (f32, f32) { self.position }
+
+    /// Hide the turtle so it won't be drawn on the screen
+    pub fn hide(&mut self) {
+        self.screen.turtle_hidden = true;
+    }
+
+    /// Show the turtle again after it has been hidden
+    pub fn show(&mut self) {
+        self.screen.turtle_hidden = false;
+    }
+
+    /// Returns true if the turtle is currently hidden
+    pub fn is_hidden(&self) -> bool {
+        self.screen.turtle_hidden
+    }
 }

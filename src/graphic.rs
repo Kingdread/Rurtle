@@ -98,6 +98,8 @@ pub struct TurtleScreen {
     /// The orientation of the turtle in degrees where 0° is north and positive
     /// degrees count counter-clockwise
     pub turtle_orientation: f32,
+    /// If this is set to true, the turtle itself won't be drawn
+    pub turtle_hidden: bool,
 }
 
 impl TurtleScreen {
@@ -137,6 +139,7 @@ impl TurtleScreen {
             turtle_position: (0.0, 0.0),
             turtle_color: color::BLACK,
             turtle_orientation: 0.0,
+            turtle_hidden: false,
         }
     }
 
@@ -163,7 +166,9 @@ impl TurtleScreen {
             [0.0, 0.0, 0.0, 1.0],
         ];
         self.draw_lines(&mut frame, matrix);
-        self.draw_turtle(&mut frame, matrix);
+        if !self.turtle_hidden {
+            self.draw_turtle(&mut frame, matrix);
+        }
         frame.finish();
     }
 

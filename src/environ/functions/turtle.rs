@@ -64,3 +64,13 @@ pub fn realign(env: &mut Environment, args: &[Value]) -> ResultType {
         Ok(Value::Nothing)
     })
 }
+
+pub fn hide(env: &mut Environment, _: &[Value]) -> ResultType {
+    env.turtle.hide();
+    Ok(Value::Nothing)
+}
+
+pub fn show(env: &mut Environment, _: &[Value]) -> ResultType {
+    env.turtle.show();
+    Ok(Value::Nothing)
+}
