@@ -75,7 +75,7 @@ mod module {
 #[cfg(windows)]
 mod module {
     use std::io::{self, Write};
-    
+
     pub fn readline(prompt: &str) -> Option<String> {
         print!("{}", prompt);
         io::stdout().flush().unwrap();
@@ -84,10 +84,10 @@ mod module {
         match stdin.read_line(&mut line) {
             Ok(0) => None,
             Ok(_) => Some(line),
-            Err(e) => panic!(format!("Error in readline: {}", e)),
+            Err(e) => panic!("Error in readline: {}", e),
         }
     }
-    
+
     pub fn add_history(_: &str) {}
 }
 

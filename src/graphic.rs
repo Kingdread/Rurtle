@@ -115,13 +115,13 @@ impl TurtleScreen {
             .with_dimensions(size.0, size.1)
             .build_glium();
         let window = match builder {
-            Err(error) => panic!(format!("Window creation failed: {}", error)),
+            Err(error) => panic!("Window creation failed: {}", error),
             Ok(win) => win,
         };
         let program_builder = glium::Program::from_source(
             &window, VERTEX_SHADER, FRAGMENT_SHADER, None);
         let program = match program_builder {
-            Err(error) => panic!(format!("Program creation failed: {}", error)),
+            Err(error) => panic!("Program creation failed: {}", error),
             Ok(prg) => prg,
         };
         let ferris_image = image::load(io::Cursor::new(FERRIS_BYTES),
