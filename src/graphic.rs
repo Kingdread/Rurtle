@@ -29,6 +29,7 @@
 extern crate glium;
 extern crate image;
 use glium::Surface;
+use std::io;
 
 /// A Point to pass around to shaders.
 #[derive(Copy, Clone)]
@@ -38,10 +39,23 @@ struct Point {
 }
 implement_vertex!(Point, coords, color);
 
+#[derive(Copy, Clone)]
+struct FerrisPoint {
+    coords: [f32; 2],
+    tex_coords: [f32; 2],
+}
+implement_vertex!(FerrisPoint, coords, tex_coords);
+
 /// Source for the vertex shader in the OpenGL shader language
 const VERTEX_SHADER: &'static str = include_str!("shaders/vertex.glsl");
 /// Source for the fragment shader in the OpenGL shader language
 const FRAGMENT_SHADER: &'static str = include_str!("shaders/fragment.glsl");
+/// Ferris image bytes
+const FERRIS_BYTES: &'static [u8] = include_bytes!("ferris.png");
+/// Ferris vertex shader source
+const FERRIS_VERTEX: &'static str = include_str!("shaders/ferris_vertex.glsl");
+/// Ferris fragment shader
+const FERRIS_FRAGMENT: &'static str = include_str!("shaders/ferris_fragment.glsl");
 
 type ScaleMatrix = [[f32; 4]; 4];
 
@@ -75,6 +89,8 @@ pub struct TurtleScreen {
     program: glium::Program,
     lines: Vec<Line>,
     _is_closed: bool,
+    ferris: glium::texture::Texture2d,
+    ferris_program: glium::Program,
     /// The position of the turtle on the canvas
     pub turtle_position: (f32, f32),
     /// The color of the turtle
@@ -106,11 +122,18 @@ impl TurtleScreen {
             Err(error) => panic!(format!("Program creation failed: {}", error)),
             Ok(prg) => prg,
         };
+        let ferris_image = image::load(io::Cursor::new(FERRIS_BYTES),
+                                       image::ImageFormat::PNG).unwrap();
+        let ferris_texture = glium::texture::Texture2d::new(&window, ferris_image);
+        let ferris_program = glium::Program::from_source(&window, FERRIS_VERTEX,
+                                                         FERRIS_FRAGMENT, None) .unwrap();
         TurtleScreen {
             window: window,
             program: program,
             lines: Vec::new(),
             _is_closed: false,
+            ferris: ferris_texture,
+            ferris_program: ferris_program,
             turtle_position: (0.0, 0.0),
             turtle_color: color::BLACK,
             turtle_orientation: 0.0,
@@ -161,48 +184,47 @@ impl TurtleScreen {
     }
 
     fn draw_turtle(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {
-        // The turtle consists of 4 points (let tx, ty = turtle_position):
-        // A: tx, ty
-        // B: tx - DELTA_OUT.0, ty + DELTA_OUT.1
-        // C: tx + DELTA_MID.0, ty + DELTA_MID.1
-        // D: tx + DELTA_OUT.0, ty + DELTA_OUT.1
-        //     A
-        //
-        //     C
-        //  B     D
-        use self::color::to_array;
-        const DELTA_MID: (f32, f32) = (0.0, -10.0);
-        const DELTA_OUT: (f32, f32) = (7.0, -13.0);
+        // WIDTH and HEIGHT specifiy the size in which Ferris should be drawn.
+        // The aspect ratio should be kept, the original Ferris image has a
+        // ratio of w:h 3:2
+        const WIDTH: f32 = 36.;
+        const HEIGHT: f32 = 24.;
+        const DX: f32 = WIDTH / 2.;
+        const DY: f32 = HEIGHT / 2.;
 
         let (tx, ty) = self.turtle_position;
         let orientation_rad = ::std::f32::consts::PI * self.turtle_orientation / 180.0;
         let sin_d = orientation_rad.sin();
         let cos_d = orientation_rad.cos();
 
-        // See http://en.wikipedia.org/wiki/Rotation_%28mathematics%29#Two_dimensions
-        // for an explanation of the formula.
-        // Again, it would probably be better to do it in the vertex shader...
+        let rotation_matrix = [
+            [cos_d, sin_d, 0., 0.],
+            [-sin_d, cos_d, 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 0., 0., 1.],
+        ];
+
         let vertex_buffer = glium::VertexBuffer::new(
             &self.window,
             vec![
-                Point { coords: [tx, ty], color: to_array(self.turtle_color) },
-                Point { coords: [
-                    tx + (-DELTA_OUT.0 * cos_d - DELTA_OUT.1 * sin_d),
-                    ty + (-DELTA_OUT.0 * sin_d + DELTA_OUT.1 * cos_d),
-                    ], color: to_array(self.turtle_color) },
-                Point { coords: [
-                    tx + (DELTA_MID.0 * cos_d - DELTA_MID.1 * sin_d),
-                    ty + (DELTA_MID.0 * sin_d + DELTA_MID.1 * cos_d),
-                    ], color: to_array(self.turtle_color) },
-                Point { coords: [
-                    tx + (DELTA_OUT.0 * cos_d - DELTA_OUT.1 * sin_d),
-                    ty + (DELTA_OUT.0 * sin_d + DELTA_OUT.1 * cos_d),
-                    ], color: to_array(self.turtle_color) },
-                ]
-                );
+                // Bottom left corner
+                FerrisPoint { coords: [tx - DX, ty - DY], tex_coords: [0., 0.] },
+                // Bottom right corner
+                FerrisPoint { coords: [tx + DX, ty - DY], tex_coords: [1., 0.] },
+                // Top right corner
+                FerrisPoint { coords: [tx + DX, ty + DY], tex_coords: [1., 1.] },
+                // Top left corner
+                FerrisPoint { coords: [tx - DX, ty + DY], tex_coords: [0., 1.] },
+        ]);
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
-        let uniforms = uniform! { matrix: matrix };
-        frame.draw(&vertex_buffer, &indices, &self.program, &uniforms, &Default::default())
+        let uniforms = uniform! {
+            matrix: matrix,
+            rotation_matrix: rotation_matrix,
+            ferris_tex: &self.ferris,
+            tip_x: tx,
+            tip_y: ty,
+        };
+        frame.draw(&vertex_buffer, &indices, &self.ferris_program, &uniforms, &Default::default())
             .unwrap();
     }
 
