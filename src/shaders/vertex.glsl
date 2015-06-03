@@ -1,9 +1,9 @@
-#version 140
-in vec2 coords;
-in vec4 color;
+#version 120
+attribute vec2 coords;
+attribute vec4 color;
 uniform mat4 matrix;
 
-flat out vec4 v_color;
+varying vec4 v_color;
 
 void main(void) {
      v_color = color;

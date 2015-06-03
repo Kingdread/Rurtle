@@ -12,7 +12,7 @@ Requirements
 
 Rust nightly (Rurtle uses unstable features).
 
-The Rurtle shaders require GLSL version 140 and thus OpenGL >= 3.1
+The Rurtle shaders require GLSL version 120 and thus at least OpenGL 2.
 
 Running
 -------
