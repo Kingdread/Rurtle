@@ -147,26 +147,26 @@ fn is_identifier_cont(c: char) -> bool {
 }
 
 struct Tokenizer {
-    result: Vec<MetaToken>,
+    result: VecDeque<MetaToken>,
     line_number: u32,
 }
 
 impl Tokenizer {
     fn new() -> Tokenizer {
         Tokenizer {
-            result: Vec::new(),
+            result: VecDeque::new(),
             line_number: 1,
         }
     }
 
     fn push(&mut self, token: Token) {
-        self.result.push(MetaToken {
+        self.result.push_back(MetaToken {
             token: token,
             line_number: self.line_number,
         })
     }
 
-    fn tokenize(mut self, input: &str) -> Result<Vec<MetaToken>, LexError> {
+    fn tokenize(mut self, input: &str) -> Result<VecDeque<MetaToken>, LexError> {
         let mut chars: VecDeque<char> = input.chars().collect();
         while !chars.is_empty() {
             let c = chars.pop_front().unwrap();
@@ -274,7 +274,7 @@ impl Tokenizer {
 
 /// Split the input String into single tokens. Strings in the input source are
 /// returned as a single token.
-pub fn tokenize(input: &str) -> Result<Vec<MetaToken>, LexError> {
+pub fn tokenize(input: &str) -> Result<VecDeque<MetaToken>, LexError> {
     let tokenizer = Tokenizer::new();
     tokenizer.tokenize(input)
 }

@@ -42,7 +42,7 @@ pub mod ast;
 use super::lex::{Token, MetaToken};
 use self::ast::{Node, AddOp, MulOp, CompOp};
 use self::ast::Node::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::{error, fmt};
 
 /// A `FuncMap` maps the name of a function to the number of arguments it takes
@@ -50,7 +50,7 @@ pub type FuncMap = HashMap<String, i32>;
 
 /// A `Parser` builds an AST from the given input token stream.
 pub struct Parser {
-    tokens: Vec<MetaToken>,
+    tokens: VecDeque<MetaToken>,
     functions: FuncMap,
     last_line: u32,
 }
@@ -133,7 +133,7 @@ macro_rules! expect {
 
 impl Parser {
     /// Construct a new `Parser`, consuming the given tokens.
-    pub fn new(tokens: Vec<MetaToken>, functions: FuncMap) -> Parser {
+    pub fn new(tokens: VecDeque<MetaToken>, functions: FuncMap) -> Parser {
         Parser {
             tokens: tokens,
             functions: functions,
@@ -147,16 +147,15 @@ impl Parser {
     }
 
     fn peek(&self) -> Token {
-        self.tokens[0].token.clone()
+        self.tokens.front().unwrap().token.clone()
     }
 
     fn pop_left(&mut self) -> Result<Token, ParseError> {
-        if self.tokens.is_empty() {
-            parse_error!(self, UnexpectedEnd)
-        } else {
-            let meta = self.tokens.remove(0);
+        if let Some(meta) = self.tokens.pop_front() {
             self.last_line = meta.line_number;
             Ok(meta.token)
+        } else {
+            parse_error!(self, UnexpectedEnd)
         }
     }
 
