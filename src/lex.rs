@@ -12,6 +12,7 @@
 //!
 //! Variables are prefixed by a colon (:) and otherwise follow the same rules as
 //! identifiers.
+use std::collections::VecDeque;
 
 /// A `Token` represents a "atom" block of the input source.
 #[derive(Debug, Clone, PartialEq)]
@@ -166,9 +167,9 @@ impl Tokenizer {
     }
 
     fn tokenize(mut self, input: &str) -> Result<Vec<MetaToken>, LexError> {
-        let mut chars: Vec<char> = input.chars().collect();
+        let mut chars: VecDeque<char> = input.chars().collect();
         while !chars.is_empty() {
-            let c = chars.remove(0);
+            let c = chars.pop_front().unwrap();
             match c {
                 '(' => self.push(Token::LParens),
                 ')' => self.push(Token::RParens),
@@ -182,10 +183,10 @@ impl Tokenizer {
                 '=' => self.push(Token::OpEq),
                 '<' => {
                     if !chars.is_empty() && chars[0] == '=' {
-                        chars.remove(0);
+                        chars.pop_front().unwrap();
                         self.push(Token::OpLe);
                     } else if !chars.is_empty() && chars[0] == '>' {
-                        chars.remove(0);
+                        chars.pop_front().unwrap();
                         self.push(Token::OpNe);
                     } else {
                         self.push(Token::OpLt);
@@ -193,7 +194,7 @@ impl Tokenizer {
                 },
                 '>' => {
                     if !chars.is_empty() && chars[0] == '=' {
-                        chars.remove(0);
+                        chars.pop_front();
                         self.push(Token::OpGe);
                     } else {
                         self.push(Token::OpGt);
@@ -202,7 +203,7 @@ impl Tokenizer {
                 // Ignore comments, i.e. everything from ; to the end of line
                 ';' => {
                     while !chars.is_empty() {
-                        if chars.remove(0) == '\n' {
+                        if chars.pop_front().unwrap() == '\n' {
                             self.line_number += 1;
                             break
                         }
@@ -212,7 +213,7 @@ impl Tokenizer {
                 _ if is_identifier_start(c) => {
                     let mut word = c.to_string();
                     while !chars.is_empty() && is_identifier_cont(chars[0]) {
-                        word.push(chars.remove(0));
+                        word.push(chars.pop_front().unwrap());
                     }
                     self.push(match word.to_uppercase().as_ref() {
                         "LEARN" => Token::KeyLearn,
@@ -232,7 +233,7 @@ impl Tokenizer {
                     let mut number = c.to_string();
                     while !chars.is_empty() &&
                         (chars[0].is_numeric() || chars[0] == '.') {
-                        number.push(chars.remove(0));
+                        number.push(chars.pop_front().unwrap());
                     }
                     match number.parse() {
                         Ok(f) => self.push(Token::Number(f)),
@@ -244,7 +245,7 @@ impl Tokenizer {
                     let mut string = String::new();
                     let mut terminated = false;
                     while !chars.is_empty() {
-                        let c = chars.remove(0);
+                        let c = chars.pop_front().unwrap();
                         match c {
                             '"' => {
                                 self.push(Token::String(string));
