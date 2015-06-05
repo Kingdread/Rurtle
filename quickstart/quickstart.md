@@ -455,7 +455,17 @@ List functions
 *getindex [list] [index]*: return the [index]th element of [list]. Note that
 indices start at 0, so the first element is `getindex [list] 0`
 
+*find [list] [elem]*: return the index of the first occurence of [elem] in
+[list]. If [elem] is not found, return -1 instead.
+
 Boolean functions
 -----------------
 
 *not [value]*: return the negated [value]
+
+Type conversion functions
+-------------------------
+
+*tonumber [string]*: try to make a number out of the given string
+
+*tostring [value]*: return a string representation of the given value

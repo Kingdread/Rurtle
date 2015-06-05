@@ -46,7 +46,36 @@ pub fn getindex(_: &mut Environment, args: &[Value]) -> ResultType {
     })
 }
 
+pub fn find(_: &mut Environment, args: &[Value]) -> ResultType {
+    if let Value::List(ref values) = args[0] {
+        let needle = &args[1];
+        for (i, hay) in values.iter().enumerate() {
+            if hay == needle {
+                return Ok(Value::Number(i as f32))
+            }
+        }
+        Ok(Value::Number(-1.))
+    } else {
+        Err(RuntimeError(format!("Invalid argument: {}", args[0])))
+    }
+}
+
 pub fn not(_: &mut Environment, args: &[Value]) -> ResultType {
     let as_boolean = args[0].boolean();
     Ok(Value::Number(if as_boolean { 0. } else { 1. }))
+}
+
+// Type conversion functions
+
+pub fn tonumber(_: &mut Environment, args: &[Value]) -> ResultType {
+    get_args!(args, arg Value::String(ref string), => {
+        match string.parse::<f32>() {
+            Ok(num) => Ok(Value::Number(num)),
+            Err(e) => Err(RuntimeError(format!("{}", e))),
+        }
+    })
+}
+
+pub fn tostring(_: &mut Environment, args: &[Value]) -> ResultType {
+    Ok(Value::String(format!("{}", args[0])))
 }

@@ -109,6 +109,10 @@ pub fn default_functions() -> HashMap<String, Function> {
         "LENGTH" => Native(1, types::length),
         "ISEMPTY" => Native(1, types::isempty),
         "GETINDEX" => Native(2, types::getindex),
+        "FIND" => Native(2, types::find),
+        // conversion
         "NOT" => Native(1, types::not),
+        "TONUMBER" => Native(1, types::tonumber),
+        "TOSTRING" => Native(1, types::tostring),
     }
 }
