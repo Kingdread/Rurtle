@@ -35,6 +35,7 @@ Syntax
 * Conditionals: `if :i = 2 do print "Two" else print "Not two" end`
 * `repeat`-loop: `repeat 4 do forward 100 right 90 end`
 * `while`-loop: `while :i <> 0 do make "i" :i - 1 end`
+* Error handling: `try tonumber "foo" else print "not a number" end`
 
 Loops can be nested and may have arbirary many statements in their bodies:
 
@@ -56,7 +57,10 @@ For a complete list, see `src/environ/functions/mod.rs`.
 Documentation/Language reference
 --------------------------------
 
-None yet :(
+For documentation of the modules, see [here][docs].
+
+For an overview of the language and the available functions, see
+[/quickstart/quickstart.md][quickstart].
 
 License
 -------
@@ -79,3 +83,5 @@ License
 [tgraphics]: https://en.wikipedia.org/wiki/Turtle_graphics
 [ucblogo]: https://en.wikipedia.org/wiki/UCBLogo
 [winlogo]: http://www.win-logo.de/
+[docs]: http://kingdread.de/rust/rurtle/
+[quickstart][/quickstart/quickstart.md]

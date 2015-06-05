@@ -368,6 +368,73 @@ Rurtle> print mean [1 2 3 4 5 6 7]
 
 Works!
 
+Dealing with errors
+===================
+
+Sometimes a function doesn't work "right" because it is used in the wrong way,
+for example accessing an index of a list that isn't even there or converting a
+string to a number that doesn't make sense:
+
+```text
+Rurtle> getindex [1] 1
+runtime error: Index out of bounds: 1 >= 1
+Rurtle> tonumber "foo"
+runtime error: invalid float literal
+```
+
+Such functions aren't defined for all inputs (e.g. `tonumber` is not defined for
+every possible string) and those functions need a way to signal "hey, I can't
+make sense of this input". One way would be to return a default value, but that
+might lead to bugs later. Plus, what is the default value for a number? 0,
+because n + 0 = n? Or is it 1, because n * 1 = n?
+
+As you can see, default values aren't the best way to deal with that kind of
+error, so functions may throw errors that will stop exection and display an
+error message to the user.
+
+If you know beforehand that the function may throw an error, you can prepare for
+that case with a `TRY ... ELSE ... END` block:
+
+```text
+TRY
+    func1
+    func2
+    func3
+ELSE
+    func4
+    func5
+END
+```
+
+`func1`, `func2` and `func3` are executed as normal, except when one throws an
+error, then execution switches to `func4` and `func5`. This allows for programs
+like this:
+
+```text
+learn promptnumber :prompt do
+    while 1=1 do
+        try
+            return tonumber prompt :prompt
+        else
+            print "That was not a number"
+        end
+    end
+end
+```
+
+This function keeps asking the user for a number until a valid number literal is
+entered:
+
+```text
+Rurtle> print promptnumber "Number: "
+Number: foo
+That was not a number
+Number: bar
+That was not a number
+Number: 3
+3
+```
+
 Language reference
 ==================
 
