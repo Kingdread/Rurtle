@@ -59,8 +59,10 @@ Documentation/Language reference
 
 For documentation of the modules, see [here][docs].
 
-For an overview of the language and the available functions, see
-[/quickstart/quickstart.md][quickstart].
+For an overview of the language and the available functions, look in
+`quickstart/`. The [quickstart guide](/quickstart/quickstart.md) is written in
+Markdown and can be viewed on GitHub or locally converted to HTML by running
+`make` in the quickstart directory.
 
 License
 -------
@@ -84,4 +86,3 @@ License
 [ucblogo]: https://en.wikipedia.org/wiki/UCBLogo
 [winlogo]: http://www.win-logo.de/
 [docs]: http://kingdread.de/rust/rurtle/
-[quickstart][/quickstart/quickstart.md]
