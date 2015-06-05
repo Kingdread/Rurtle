@@ -19,6 +19,10 @@ pub enum Node {
     WhileStatement(Box<Node>, Box<Node>),
     /// The function definition statement (func name, func arg names, func body)
     LearnStatement(String, Vec<String>, Box<Node>),
+    /// A block that ignores errors, the first element is the "ordinary" block,
+    /// the second element is the block that will be called when an exception
+    /// occurs
+    TryStatement(Box<Node>, Box<Node>),
     Comparison(Box<Node>, CompOp, Box<Node>),
     /// Addition or subtraction. One addition may hold more than one operation.
     Addition(Box<Node>, Vec<(AddOp, Node)>),
@@ -84,6 +88,8 @@ impl Node {
                                                          Box::new(body.flatten())),
             LearnStatement(name, args, body) => LearnStatement(name, args,
                                                                Box::new(body.flatten())),
+            TryStatement(normal, exception) => TryStatement(Box::new(normal.flatten()),
+                                                            Box::new(exception.flatten())),
             Comparison(operand1, op, operand2) => Comparison(Box::new(operand1.flatten()),
                                                              op,
                                                              Box::new(operand2.flatten())),

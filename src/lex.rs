@@ -70,6 +70,8 @@ pub enum Token {
     KeyFor,
     /// Keyword "RETURN"
     KeyReturn,
+    /// Keyword "TRY"
+    KeyTry,
 }
 
 impl ::std::fmt::Display for Token {
@@ -225,6 +227,7 @@ impl Tokenizer {
                         "WHILE" => Token::KeyWhile,
                         "RETURN" => Token::KeyReturn,
                         "ELSE" => Token::KeyElse,
+                        "TRY" => Token::KeyTry,
                         _ => Token::Word(word),
                     });
                 },

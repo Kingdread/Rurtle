@@ -143,6 +143,8 @@ impl Environment {
                 self.eval_func_call(name, args),
             ReturnStatement(ref value) =>
                 self.eval_return_statement(value),
+            TryStatement(ref normal, ref exception) =>
+                self.eval_try_statement(normal, exception),
             List(ref elements) =>
                 self.eval_list(elements),
             StringLiteral(ref string) =>
@@ -199,6 +201,14 @@ impl Environment {
             Ok(Value::Nothing)
         } else {
             panic!("{:?} is not a LearnStatement", statement);
+        }
+    }
+
+    fn eval_try_statement(&mut self, normal: &Node, exception: &Node) -> ResultType {
+        let result = self.eval(normal);
+        match result {
+            Ok(_) => Ok(Value::Nothing),
+            Err(_) => self.eval(exception),
         }
     }
 
