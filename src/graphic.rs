@@ -100,6 +100,8 @@ pub struct TurtleScreen {
     pub turtle_orientation: f32,
     /// If this is set to true, the turtle itself won't be drawn
     pub turtle_hidden: bool,
+    /// Background color of the turtle screen
+    pub background_color: color::Color,
 }
 
 impl TurtleScreen {
@@ -140,6 +142,7 @@ impl TurtleScreen {
             turtle_color: color::BLACK,
             turtle_orientation: 0.0,
             turtle_hidden: false,
+            background_color: color::WHITE,
         }
     }
 
@@ -157,7 +160,10 @@ impl TurtleScreen {
     /// Draw everything and update the screen
     pub fn draw_and_update(&self) {
         let mut frame = self.window.draw();
-        frame.clear_color(1.0, 1.0, 1.0, 1.0);
+        {
+            let (br, bg, bb, ba) = self.background_color;
+            frame.clear_color(br, bg, bb, ba);
+        }
         let (width, height) = frame.get_dimensions();
         let matrix = [
             [2.0 / width as f32, 0.0, 0.0, 0.0],

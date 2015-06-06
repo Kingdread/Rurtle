@@ -139,6 +139,12 @@ impl Turtle {
         self.screen.draw_and_update();
     }
 
+    /// Set the background color of the screen.
+    pub fn set_background_color(&mut self, red: f32, green: f32, blue: f32) {
+        self.screen.background_color = (red, green, blue, 1.);
+        self.screen.draw_and_update();
+    }
+
     /// Directly move the turtle to the given point without changing the
     /// direction. Draws a line if the pen is down. Note that the origin (0, 0)
     /// is in the center of the screen with positive coordinates being right/top
