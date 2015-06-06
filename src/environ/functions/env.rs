@@ -44,3 +44,9 @@ pub fn prompt(_: &mut Environment, args: &[Value]) -> ResultType {
         }
     })
 }
+
+pub fn throw(_: &mut Environment, args: &[Value]) -> ResultType {
+    get_args!(args, arg Value::String(ref error_desc), => {
+        Err(RuntimeError(error_desc.clone()))
+    })
+}

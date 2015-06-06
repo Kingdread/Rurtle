@@ -79,3 +79,7 @@ pub fn tonumber(_: &mut Environment, args: &[Value]) -> ResultType {
 pub fn tostring(_: &mut Environment, args: &[Value]) -> ResultType {
     Ok(Value::String(format!("{}", args[0])))
 }
+
+pub fn nothing(_: &mut Environment, _: &[Value]) -> ResultType {
+    Ok(Value::Nothing)
+}

@@ -98,6 +98,7 @@ pub fn default_functions() -> HashMap<String, Function> {
         // Other environment functions
         "SCREENSHOT" => Native(1, env::screenshot),
         "PROMPT" => Native(1, env::prompt),
+        "THROW" => Native(1, env::throw),
 
         // Haskellesque names
         "HEAD" => Native(1, types::head),
@@ -114,5 +115,6 @@ pub fn default_functions() -> HashMap<String, Function> {
         "NOT" => Native(1, types::not),
         "TONUMBER" => Native(1, types::tonumber),
         "TOSTRING" => Native(1, types::tostring),
+        "NOTHING" => Native(0, types::nothing),
     }
 }

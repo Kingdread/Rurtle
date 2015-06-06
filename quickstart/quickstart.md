@@ -508,6 +508,8 @@ careful!
 
 *prompt [text]*: ask the user for input, displaying the given [text]
 
+*throw [error]*: throw a runtime error with the given text as message
+
 List functions
 --------------
 
@@ -536,3 +538,5 @@ Type conversion functions
 *tonumber [string]*: try to make a number out of the given string
 
 *tostring [value]*: return a string representation of the given value
+
+*nothing*: always return the "nothing" value without doing anything else
