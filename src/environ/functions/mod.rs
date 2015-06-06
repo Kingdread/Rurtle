@@ -84,6 +84,7 @@ pub fn default_functions() -> HashMap<String, Function> {
         "LEFT" => Native(1, turtle::left),
         "RIGHT" => Native(1, turtle::right),
         "COLOR" => Native(3, turtle::color),
+        "BGCOLOR" => Native(3, turtle::bgcolor),
         "CLEAR" => Native(0, turtle::clear),
         "PENDOWN" => Native(0, turtle::pendown),
         "PENUP" => Native(0, turtle::penup),

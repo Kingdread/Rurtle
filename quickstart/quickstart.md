@@ -479,6 +479,8 @@ Drawing functions
 *color [r] [g] [b]*: set the turtle's color to the given RGB value, where
 `0 <= r <= 1, 0 <= g <= 1` and `0 <= 1`
 
+*bgcolor [r] [g] [b]*: set the background color to the given RGB value.
+
 *clear*: clear the screen
 
 *penup*: lift the pen, the turtle will stop drawing until you lower the pen

@@ -38,6 +38,16 @@ pub fn color(env: &mut Environment, args: &[Value]) -> ResultType {
               })
 }
 
+pub fn bgcolor(env: &mut Environment, args: &[Value]) -> ResultType {
+    get_args!(args,
+              arg Value::Number(r),
+              arg Value::Number(g),
+              arg Value::Number(b), => {
+                  env.turtle.set_background_color(r, g, b);
+                  Ok(Value::Nothing)
+              })
+}
+
 pub fn clear(env: &mut Environment, _: &[Value]) -> ResultType {
     env.turtle.clear();
     Ok(Value::Nothing)
