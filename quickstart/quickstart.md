@@ -534,6 +534,21 @@ Boolean functions
 
 *not [value]*: return the negated [value]
 
+String functions
+----------------
+
+*length [string]*: overloaded for strings, returns the length of [string]
+
+*replace [original] [what] [replacement]*: replace every occurence of [what] in
+[original] with [replacement] and return the new string
+
+*contains [string] [pattern]*: return true if [string] contains [pattern]
+
+*chars [string]*: return a list of single characters of [string]
+
+*split [string] [pattern]*: split the given [string] on each occurence of
+[pattern]
+
 Type conversion functions
 -------------------------
 

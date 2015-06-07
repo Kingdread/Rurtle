@@ -61,6 +61,7 @@ macro_rules! get_args {
 mod turtle;
 mod env;
 mod types;
+mod string;
 
 /// A helpful macro to construct a `HashMap`
 macro_rules! map {
@@ -117,5 +118,11 @@ pub fn default_functions() -> HashMap<String, Function> {
         "TONUMBER" => Native(1, types::tonumber),
         "TOSTRING" => Native(1, types::tostring),
         "NOTHING" => Native(0, types::nothing),
+
+        // String manipulating functions
+        "REPLACE" => Native(3, string::replace),
+        "CONTAINS" => Native(2, string::contains),
+        "CHARS" => Native(1, string::chars),
+        "SPLIT" => Native(2, string::split),
     }
 }
