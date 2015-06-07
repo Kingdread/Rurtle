@@ -108,7 +108,7 @@ pub fn default_functions() -> HashMap<String, Function> {
         "FIRST" => Native(1, types::head),
         "BUTFIRST" => Native(1, types::tail),
         // other list functions
-        "LENGTH" => Native(1, types::length),
+        "LENGTH" => Native(1, types::length), // also works for strings
         "ISEMPTY" => Native(1, types::isempty),
         "GETINDEX" => Native(2, types::getindex),
         "FIND" => Native(2, types::find),

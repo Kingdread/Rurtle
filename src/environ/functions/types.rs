@@ -21,9 +21,11 @@ pub fn tail(_: &mut Environment, args: &[Value]) -> ResultType {
 }
 
 pub fn length(_: &mut Environment, args: &[Value]) -> ResultType {
-    get_args!(args, arg Value::List(ref values), => {
-        Ok(Value::Number(values.len() as f32))
-    })
+    match args[0] {
+        Value::List(ref l) => Ok(Value::Number(l.len() as f32)),
+        Value::String(ref s) => Ok(Value::Number(s.len() as f32)),
+        ref val => Err(RuntimeError(format!("Invalid argument: {}", val))),
+    }
 }
 
 pub fn isempty(_: &mut Environment, args: &[Value]) -> ResultType {
