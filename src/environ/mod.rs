@@ -266,10 +266,7 @@ impl Environment {
             Some(f) => f.clone(),
             None => return Err(RuntimeError(format!("function {} not found", name))),
         };
-        let mut args: Vec<Value> = Vec::new();
-        for node in arg_nodes {
-            args.push(try!(self.eval(node)));
-        }
+        let args: Vec<Value> = try!(arg_nodes.iter().map(|a| self.eval(a)).collect());
         match function {
             Function::Native(_, ref f) => {
                 f(self, &args)
