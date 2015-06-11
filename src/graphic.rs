@@ -174,6 +174,7 @@ impl TurtleScreen {
     /// position, color or orientation.
     pub fn clear(&mut self) {
         self.lines.clear();
+        self.texts.clear();
     }
 
     /// Draw everything and update the screen
