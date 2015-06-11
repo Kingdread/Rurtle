@@ -188,4 +188,10 @@ impl Turtle {
     pub fn is_hidden(&self) -> bool {
         self.screen.turtle_hidden
     }
+
+    /// Write the text on the screen. The lower-left corner of the Text starts
+    /// where the turtle is.
+    pub fn write(&mut self, text: &str) {
+        self.screen.add_text(self.position, self.orientation, self.color, text);
+    }
 }
