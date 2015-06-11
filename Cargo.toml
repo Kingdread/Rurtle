@@ -14,5 +14,7 @@ doc = false
 
 [dependencies]
 glium = "*"
+glium_text = "*"
+nalgebra = "*"
 image = "*"
 libc = "*"

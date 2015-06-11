@@ -27,7 +27,9 @@
 //! screen.draw_and_update();
 //! ```
 extern crate glium;
+extern crate glium_text;
 extern crate image;
+extern crate nalgebra as na;
 use glium::Surface;
 use std::io;
 
@@ -56,6 +58,7 @@ const FERRIS_BYTES: &'static [u8] = include_bytes!("ferris.png");
 const FERRIS_VERTEX: &'static str = include_str!("shaders/ferris_vertex.glsl");
 /// Ferris fragment shader
 const FERRIS_FRAGMENT: &'static str = include_str!("shaders/ferris_fragment.glsl");
+const FONT_DATA: &'static [u8] = include_bytes!("dejavusansmono.ttf");
 
 type ScaleMatrix = [[f32; 4]; 4];
 
@@ -80,6 +83,8 @@ pub mod color {
 
 /// A Line is defined via startpoint, endpoint and a color
 struct Line(f32, f32, f32, f32, color::Color);
+/// A Text is defined via anchor point, angle, color and text
+struct Text(f32, f32, f32, color::Color, String);
 
 
 /// A `TurtleScreen` is a window that houses a turtle. It provides some graphic
@@ -88,9 +93,12 @@ pub struct TurtleScreen {
     window: glium::backend::glutin_backend::GlutinFacade,
     program: glium::Program,
     lines: Vec<Line>,
+    texts: Vec<Text>,
     _is_closed: bool,
     ferris: glium::texture::Texture2d,
     ferris_program: glium::Program,
+    text_system: glium_text::TextSystem,
+    font: glium_text::FontTexture,
     /// The position of the turtle on the canvas
     pub turtle_position: (f32, f32),
     /// The color of the turtle
@@ -131,13 +139,19 @@ impl TurtleScreen {
         let ferris_texture = glium::texture::Texture2d::new(&window, ferris_image);
         let ferris_program = glium::Program::from_source(&window, FERRIS_VERTEX,
                                                          FERRIS_FRAGMENT, None) .unwrap();
+        let text_system = glium_text::TextSystem::new(&window);
+        let font = glium_text::FontTexture::new(&window,
+                                                io::Cursor::new(FONT_DATA), 24).unwrap();
         TurtleScreen {
             window: window,
             program: program,
             lines: Vec::new(),
+            texts: Vec::new(),
             _is_closed: false,
             ferris: ferris_texture,
             ferris_program: ferris_program,
+            text_system: text_system,
+            font: font,
             turtle_position: (0.0, 0.0),
             turtle_color: color::BLACK,
             turtle_orientation: 0.0,
@@ -149,6 +163,11 @@ impl TurtleScreen {
     /// Add a line to the collection, going from point start to point end
     pub fn add_line(&mut self, start: (f32, f32), end: (f32, f32), color: color::Color) {
         self.lines.push(Line(start.0, start.1, end.0, end.1, color));
+    }
+
+    /// Add a new text to the screen
+    pub fn add_text(&mut self, anchor: (f32, f32), angle: f32, color: color::Color, text: &str) {
+        self.texts.push(Text(anchor.0, anchor.1, angle, color, text.to_string()));
     }
 
     /// Remove all drawn lines. Note that this does not change the turtle's
@@ -172,6 +191,9 @@ impl TurtleScreen {
             [0.0, 0.0, 0.0, 1.0],
         ];
         self.draw_lines(&mut frame, matrix);
+        for text in self.texts.iter() {
+            self.draw_text(&mut frame, text);
+        }
         if !self.turtle_hidden {
             self.draw_turtle(&mut frame, matrix);
         }
@@ -192,6 +214,36 @@ impl TurtleScreen {
         let uniforms = uniform! { matrix: matrix };
         frame.draw(&vertex_buffer, &indices, &self.program, &uniforms, &Default::default())
             .unwrap();
+    }
+
+    fn draw_text(&self, frame: &mut glium::Frame, text: &Text) {
+        const FONT_SIZE: f32 = 12.;
+        let Text(pos_x, pos_y, angle_deg, text_color, ref data) = *text;
+        // Convert to radians
+        let angle = ::std::f32::consts::PI * angle_deg / 180.;
+        let sin_d = angle.sin();
+        let cos_d = angle.cos();
+        let text = glium_text::TextDisplay::new(&self.text_system, &self.font, data);
+        let (width, height) = frame.get_dimensions();
+        // Note that this is not column-major layout
+        let rotation_matrix = na::Mat4::new(
+            cos_d, -sin_d, 0., 0.,
+            sin_d, cos_d, 0., 0.,
+            0., 0., 1., 0.,
+            0., 0., 0., 1.);
+        let scale_matrix = na::Mat4::new(
+            2. * FONT_SIZE / width as f32, 0., 0., 0.,
+            0., 2. * FONT_SIZE / height as f32, 0., 0.,
+            0., 0., 1., 0.,
+            0., 0., 0., 1.);
+        let translate_matrix = na::Mat4::new(
+            1., 0., 0., pos_x * 2. / width as f32,
+            0., 1., 0., pos_y * 2. / height as f32,
+            0., 0., 1., 0.,
+            0., 0., 0., 1.);
+        glium_text::draw(&text, &self.text_system, frame,
+                         *(translate_matrix * scale_matrix * rotation_matrix).as_array(),
+                         text_color);
     }
 
     fn draw_turtle(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {
