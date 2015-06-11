@@ -93,6 +93,7 @@ pub fn default_functions() -> HashMap<String, Function> {
         "REALIGN" => Native(1, turtle::realign),
         "HIDE" => Native(0, turtle::hide),
         "SHOW" => Native(0, turtle::show),
+        "WRITE" => Native(1, turtle::write),
 
         // Environment functions to set variables
         "MAKE" => Native(2, env::make),

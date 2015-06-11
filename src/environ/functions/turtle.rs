@@ -84,3 +84,10 @@ pub fn show(env: &mut Environment, _: &[Value]) -> ResultType {
     env.turtle.show();
     Ok(Value::Nothing)
 }
+
+pub fn write(env: &mut Environment, args: &[Value]) -> ResultType {
+    get_args!(args, arg Value::String(ref s), => {
+        env.turtle.write(s);
+        Ok(Value::Nothing)
+    })
+}
