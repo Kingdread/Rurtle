@@ -1,4 +1,4 @@
-#![feature(scoped,collections)]
+#![feature(scoped)]
 #[macro_use]
 extern crate glium;
 

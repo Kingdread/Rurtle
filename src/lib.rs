@@ -1,5 +1,4 @@
 //! Rurtle
-#![feature(collections)]
 #[macro_use]
 extern crate glium;
 
