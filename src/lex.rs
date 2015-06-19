@@ -169,9 +169,8 @@ impl Tokenizer {
     }
 
     fn tokenize(mut self, input: &str) -> Result<VecDeque<MetaToken>, LexError> {
-        let mut chars: VecDeque<char> = input.chars().collect();
-        while !chars.is_empty() {
-            let c = chars.pop_front().unwrap();
+        let mut chars = input.chars().peekable();
+        while let Some(c) = chars.next() {
             match c {
                 '(' => self.push(Token::LParens),
                 ')' => self.push(Token::RParens),
@@ -184,19 +183,19 @@ impl Tokenizer {
                 '/' => self.push(Token::OpDiv),
                 '=' => self.push(Token::OpEq),
                 '<' => {
-                    if !chars.is_empty() && chars[0] == '=' {
-                        chars.pop_front().unwrap();
+                    if let Some(&'=') = chars.peek() {
+                        chars.next().unwrap();
                         self.push(Token::OpLe);
-                    } else if !chars.is_empty() && chars[0] == '>' {
-                        chars.pop_front().unwrap();
+                    } else if let Some(&'>') = chars.peek() {
+                        chars.next().unwrap();
                         self.push(Token::OpNe);
                     } else {
                         self.push(Token::OpLt);
                     }
                 },
                 '>' => {
-                    if !chars.is_empty() && chars[0] == '=' {
-                        chars.pop_front();
+                    if let Some(&'=') = chars.peek() {
+                        chars.next().unwrap();
                         self.push(Token::OpGe);
                     } else {
                         self.push(Token::OpGt);
@@ -204,8 +203,8 @@ impl Tokenizer {
                 },
                 // Ignore comments, i.e. everything from ; to the end of line
                 ';' => {
-                    while !chars.is_empty() {
-                        if chars.pop_front().unwrap() == '\n' {
+                    while let Some(c) = chars.next() {
+                        if c == '\n' {
                             self.line_number += 1;
                             break
                         }
@@ -214,8 +213,12 @@ impl Tokenizer {
                 // Parse an identifier or a keyword
                 _ if is_identifier_start(c) => {
                     let mut word = c.to_string();
-                    while !chars.is_empty() && is_identifier_cont(chars[0]) {
-                        word.push(chars.pop_front().unwrap());
+                    while let Some(c) = chars.peek().cloned() {
+                        if is_identifier_cont(c) {
+                            word.push(chars.next().unwrap());
+                        } else {
+                            break
+                        }
                     }
                     self.push(match word.to_uppercase().as_ref() {
                         "LEARN" => Token::KeyLearn,
@@ -234,9 +237,12 @@ impl Tokenizer {
                 // Parse a number literal
                 _ if c.is_numeric() => {
                     let mut number = c.to_string();
-                    while !chars.is_empty() &&
-                        (chars[0].is_numeric() || chars[0] == '.') {
-                        number.push(chars.pop_front().unwrap());
+                    while let Some(c) = chars.peek().cloned() {
+                        if c.is_numeric() || c == '.' {
+                            number.push(chars.next().unwrap());
+                        } else {
+                            break
+                        }
                     }
                     match number.parse() {
                         Ok(f) => self.push(Token::Number(f)),
@@ -247,8 +253,7 @@ impl Tokenizer {
                 '"' => {
                     let mut string = String::new();
                     let mut terminated = false;
-                    while !chars.is_empty() {
-                        let c = chars.pop_front().unwrap();
+                    while let Some(c) = chars.next() {
                         match c {
                             '"' => {
                                 self.push(Token::String(string));
