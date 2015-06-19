@@ -253,18 +253,37 @@ impl Tokenizer {
                 '"' => {
                     let mut string = String::new();
                     let mut terminated = false;
+                    let mut escaped = false;
                     while let Some(c) = chars.next() {
                         match c {
-                            '"' => {
+                            '"' if !escaped => {
                                 self.push(Token::String(string));
                                 terminated = true;
                                 break;
                             },
-                            '\n' => {
+                            '\n' if !escaped => {
                                 self.line_number += 1;
                                 string.push(c);
                             },
-                            _ => string.push(c),
+                            '\\' if !escaped => {
+                                escaped = true;
+                            }
+                            '\n' if escaped => {
+                                self.line_number += 1;
+                                escaped = false;
+                            },
+                            'n' if escaped => {
+                                string.push('\n');
+                                escaped = false;
+                            },
+                            'r' if escaped => {
+                                string.push('\r');
+                                escaped = false;
+                            }
+                            _ => {
+                                string.push(c);
+                                escaped = false;
+                            },
                         }
                     }
                     if !terminated {
