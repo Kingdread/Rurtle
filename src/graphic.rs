@@ -198,7 +198,7 @@ impl TurtleScreen {
         if !self.turtle_hidden {
             self.draw_turtle(&mut frame, matrix);
         }
-        frame.finish();
+        frame.finish().unwrap();
     }
 
     fn draw_lines(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {
