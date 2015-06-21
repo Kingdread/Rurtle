@@ -1,4 +1,3 @@
-#![feature(scoped)]
 #[macro_use]
 extern crate glium;
 
@@ -39,7 +38,7 @@ fn main() {
 
     // Thread to do the blocking read so we can keep updating the window in the
     // main thread
-    let guard = thread::scoped(move || {
+    let guard = thread::spawn(move || {
         loop {
             let input = readline::readline(PROMPT);
             match input {
@@ -91,5 +90,5 @@ fn main() {
     match hermes_out.send(true) {
         _ => (),
     }
-    guard.join();
+    guard.join().unwrap();
 }
