@@ -306,9 +306,11 @@ impl TurtleScreen {
         }
     }
 
-    /// Return if the window has been closed
+    /// Return if the window has been closed. A closed window can only be
+    /// detected if the window's events have been handled. Thus it is advised to
+    /// use `handle_events()` before checking `is_closed()`.
     pub fn is_closed(&self) -> bool {
-        self._is_closed || self.window.is_closed()
+        self._is_closed
     }
 
     /// Return the current screen as an image
