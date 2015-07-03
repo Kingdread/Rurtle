@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate glium;
+extern crate image;
 
 pub mod graphic;
 pub mod turtle;
@@ -7,6 +8,7 @@ pub mod lex;
 pub mod parse;
 pub mod environ;
 pub mod readline;
+pub mod floodfill;
 
 use std::error::Error;
 use std::env;

@@ -30,8 +30,10 @@ extern crate glium;
 extern crate glium_text;
 extern crate image;
 extern crate nalgebra as na;
+use image::GenericImage;
 use glium::Surface;
 use std::io;
+use super::floodfill as ff;
 
 /// A Point to pass around to shaders.
 #[derive(Copy, Clone)]
@@ -58,6 +60,8 @@ const FERRIS_BYTES: &'static [u8] = include_bytes!("ferris.png");
 const FERRIS_VERTEX: &'static str = include_str!("shaders/ferris_vertex.glsl");
 /// Ferris fragment shader
 const FERRIS_FRAGMENT: &'static str = include_str!("shaders/ferris_fragment.glsl");
+const PATCH_VERTEX: &'static str = include_str!("shaders/patch_vertex.glsl");
+const PATCH_FRAGMENT: &'static str = include_str!("shaders/patch_fragment.glsl");
 const FONT_DATA: &'static [u8] = include_bytes!("dejavusansmono.ttf");
 
 type ScaleMatrix = [[f32; 4]; 4];
@@ -85,6 +89,8 @@ pub mod color {
 struct Line(f32, f32, f32, f32, color::Color);
 /// A Text is defined via anchor point, angle, color and text
 struct Text(f32, f32, f32, color::Color, String);
+/// A filled area is defined via a patch texture and a starting point
+struct Fill(f32, f32, glium::texture::Texture2d);
 
 
 /// A `TurtleScreen` is a window that houses a turtle. It provides some graphic
@@ -94,9 +100,11 @@ pub struct TurtleScreen {
     program: glium::Program,
     lines: Vec<Line>,
     texts: Vec<Text>,
+    patches: Vec<Fill>,
     _is_closed: bool,
     ferris: glium::texture::Texture2d,
     ferris_program: glium::Program,
+    patch_program: glium::Program,
     text_system: glium_text::TextSystem,
     font: glium_text::FontTexture,
     /// The position of the turtle on the canvas
@@ -139,6 +147,8 @@ impl TurtleScreen {
         let ferris_texture = glium::texture::Texture2d::new(&window, ferris_image);
         let ferris_program = glium::Program::from_source(&window, FERRIS_VERTEX,
                                                          FERRIS_FRAGMENT, None) .unwrap();
+        let patch_program = glium::Program::from_source(&window, PATCH_VERTEX,
+                                                        PATCH_FRAGMENT, None).unwrap();
         let text_system = glium_text::TextSystem::new(&window);
         let font = glium_text::FontTexture::new(&window,
                                                 io::Cursor::new(FONT_DATA), 24).unwrap();
@@ -147,9 +157,11 @@ impl TurtleScreen {
             program: program,
             lines: Vec::new(),
             texts: Vec::new(),
+            patches: Vec::new(),
             _is_closed: false,
             ferris: ferris_texture,
             ferris_program: ferris_program,
+            patch_program: patch_program,
             text_system: text_system,
             font: font,
             turtle_position: (0.0, 0.0),
@@ -170,11 +182,42 @@ impl TurtleScreen {
         self.texts.push(Text(anchor.0, anchor.1, angle, color, text.to_string()));
     }
 
+    /// Floodfill the image at the given point with the given color
+    pub fn floodfill(&mut self, point: (f32, f32), color: color::Color) {
+        // we floodfill with the turtle not shown
+        let original_state = self.turtle_hidden;
+        self.turtle_hidden = true;
+        self.draw_and_update();
+        let image = self.screenshot();
+        self.turtle_hidden = original_state;
+        self.draw_and_update();
+        // point is given in turtle coordinates with (0,0) being in the middle, we
+        // need to translate it to picture coordinates
+        let (width, height) = image.dimensions();
+        let (adj_x, adj_y) = ((width as f32 / 2. + point.0) as u32,
+                              // minus here because the image coordinates have the
+                              // y-axis downwards while turtle coordinates have the
+                              // y-axis upwars
+                              (height as f32 / 2. - point.1) as u32);
+        let translated_color = {
+            let (r, g, b, a) = color;
+            const MAX: f32 = ::std::u8::MAX as f32;
+            ((MAX * r) as u8, (MAX * g) as u8, (MAX * b) as u8, (MAX * a) as u8)
+        };
+        let (px, py, patch) = ff::floodfill(&image, (adj_x, adj_y), translated_color);
+        // We need to translate back the start coordinates
+        let (trans_x, trans_y) = (px as f32 - width as f32 / 2.,
+                                  height as f32 / 2. - py as f32);
+        self.patches.push(Fill(trans_x, trans_y,
+                               glium::texture::Texture2d::new(&self.window, patch)));
+    }
+
     /// Remove all drawn lines. Note that this does not change the turtle's
     /// position, color or orientation.
     pub fn clear(&mut self) {
         self.lines.clear();
         self.texts.clear();
+        self.patches.clear();
     }
 
     /// Draw everything and update the screen
@@ -191,6 +234,9 @@ impl TurtleScreen {
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ];
+        for fill in self.patches.iter() {
+            self.draw_fill(&mut frame, fill, matrix);
+        }
         self.draw_lines(&mut frame, matrix);
         for text in self.texts.iter() {
             self.draw_text(&mut frame, text);
@@ -199,6 +245,31 @@ impl TurtleScreen {
             self.draw_turtle(&mut frame, matrix);
         }
         frame.finish().unwrap();
+    }
+
+    fn draw_fill(&self, frame: &mut glium::Frame, fill: &Fill, matrix: ScaleMatrix) {
+        let Fill(x, y, ref texture) = *fill;
+        let (width, height) = (texture.get_width() as f32,
+                               texture.get_height().unwrap() as f32);
+        let vertex_buffer = glium::VertexBuffer::new(
+            &self.window,
+            vec![
+                // Bottom left corner
+                FerrisPoint { coords: [x, y - height], tex_coords: [0., 0.] },
+                // Bottom right corner
+                FerrisPoint { coords: [x + width, y - height], tex_coords: [1., 0.] },
+                // Top right corner
+                FerrisPoint { coords: [x + width, y], tex_coords: [1., 1.] },
+                // Top left corner
+                FerrisPoint { coords: [x, y], tex_coords: [0., 1.] },
+        ]);
+        let indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
+        let uniforms = uniform! {
+            matrix: matrix,
+            texture_data: texture,
+        };
+        frame.draw(&vertex_buffer, &indices, &self.patch_program, &uniforms, &Default::default())
+            .unwrap();
     }
 
     fn draw_lines(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {

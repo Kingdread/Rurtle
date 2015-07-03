@@ -8,6 +8,7 @@
 //! (https://github.com/bvssvni/Piston-Tutorials/tree/master/getting-started#freetype-on-windows).
 #[macro_use]
 extern crate glium;
+extern crate image;
 
 pub mod graphic;
 pub use graphic::TurtleScreen;
@@ -26,3 +27,5 @@ pub mod environ;
 pub use environ::Environment;
 
 pub mod readline;
+
+pub mod floodfill;
