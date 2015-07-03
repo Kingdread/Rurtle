@@ -94,6 +94,7 @@ pub fn default_functions() -> HashMap<String, Function> {
         "HIDE" => Native(0, turtle::hide),
         "SHOW" => Native(0, turtle::show),
         "WRITE" => Native(1, turtle::write),
+        "FLOOD" => Native(0, turtle::flood),
 
         // Environment functions to set variables
         "MAKE" => Native(2, env::make),

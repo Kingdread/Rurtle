@@ -91,3 +91,8 @@ pub fn write(env: &mut Environment, args: &[Value]) -> ResultType {
         Ok(Value::Nothing)
     })
 }
+
+pub fn flood(env: &mut Environment, _: &[Value]) -> ResultType {
+    env.turtle.flood();
+    Ok(Value::Nothing)
+}
