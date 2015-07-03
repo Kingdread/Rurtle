@@ -194,4 +194,9 @@ impl Turtle {
     pub fn write(&mut self, text: &str) {
         self.screen.add_text(self.position, self.orientation, self.color, text);
     }
+
+    /// Perform a floodfill at the current turtle position
+    pub fn flood(&mut self) {
+        self.screen.floodfill(self.position, self.color);
+    }
 }
