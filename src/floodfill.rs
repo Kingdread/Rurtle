@@ -62,11 +62,12 @@ pub fn floodfill(img: &image::DynamicImage, start: (u32, u32), color: (u8, u8, u
     let source_color = img.get_pixel(start.0, start.1).data;
     let target_color = [color.0, color.1, color.2, color.3];
     queue.push(start);
+    let mut neighbors = Vec::with_capacity(4);
     while let Some(point) = queue.pop() {
         let (x, y) = point;
         if source_color != img.get_pixel(x, y).data { continue }
         // Checking only 4 neighbors
-        let mut neighbors = Vec::new();
+        neighbors.clear();
         if x < width - 1 { neighbors.push((x+1, y)) };
         if x > 0 { neighbors.push((x-1, y)) };
         if y < height - 1 { neighbors.push((x, y+1)) };
