@@ -500,6 +500,8 @@ is west, 180 is south and 270 is east.
 *write [text]*: Write the given text onto the screen. The bottom left corner of
 the text is positioned where the turle is. Color and orientation are preserved.
 
+*flood*: Perform a floodfill at the turtle's position.
+
 Environment functions
 ---------------------
 
