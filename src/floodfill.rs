@@ -7,7 +7,46 @@
 //! turtle window
 extern crate image;
 use self::image::GenericImage;
-use std::collections::HashSet;
+use std::collections::BitVec;
+
+/// Internal structure to simulate a 2d grid of true/false values
+/// Faster than using a HashSet with (x, y) keys.
+/// All elements are set to false initially.
+struct BitMap2d {
+    storage: BitVec,
+    height: u32,
+}
+
+impl BitMap2d {
+    fn new(width: u32, height: u32) -> BitMap2d {
+        BitMap2d {
+            storage: BitVec::from_elem(width as usize * height as usize, false),
+            height: height,
+        }
+    }
+
+    #[inline]
+    fn calculate_index(&self, x: u32, y: u32) -> usize {
+        x as usize * self.height as usize + y as usize
+    }
+
+    fn set(&mut self, x: u32, y: u32) {
+        let index = self.calculate_index(x, y);
+        self.storage.set(index, true);
+    }
+
+    /*
+    fn clear(&mut self, x: u32, y: u32) {
+        let index = self.calculate_index(x, y);
+        self.storage.set(index, false);
+    }
+    */
+
+    fn get(&mut self, x: u32, y: u32) -> bool {
+        let index = self.calculate_index(x, y);
+        self.storage.get(index).expect("Index out of bounds")
+    }
+}
 
 /// Floodfill the given image, starting at the given `source` point and coloring
 /// everything to `color`. Returns a Patch that contains the given colorized blob
@@ -16,10 +55,10 @@ use std::collections::HashSet;
 pub fn floodfill(img: &image::DynamicImage, start: (u32, u32), color: (u8, u8, u8, u8))
                  -> (u32, u32, image::DynamicImage)
 {
-    let mut result = Vec::new();
-    let mut visited: HashSet<(u32, u32)> = HashSet::new();
-    let mut queue = Vec::new();
     let (width, height) = img.dimensions();
+    let mut result = Vec::new();
+    let mut visited = BitMap2d::new(width, height);
+    let mut queue = Vec::new();
     let source_color = img.get_pixel(start.0, start.1).data;
     let target_color = [color.0, color.1, color.2, color.3];
     queue.push(start);
@@ -33,12 +72,12 @@ pub fn floodfill(img: &image::DynamicImage, start: (u32, u32), color: (u8, u8, u
         if y < height - 1 { neighbors.push((x, y+1)) };
         if y > 0 { neighbors.push((x, y-1)) };
         for (nx, ny) in neighbors.iter().cloned() {
-            if visited.contains(&(nx, ny)) { continue };
+            if visited.get(nx, ny) { continue };
             queue.push((nx, ny));
-            visited.insert((nx, ny));
+            visited.set(nx, ny);
         }
         result.push(point);
-        visited.insert(point);
+        visited.set(x, y);
     }
     let (min_x, max_x, min_y, max_y) = find_min_max(&result);
     let (width, height) = (max_x - min_x + 1, max_y - min_y + 1);
