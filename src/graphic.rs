@@ -92,15 +92,27 @@ struct Text(f32, f32, f32, color::Color, String);
 /// A filled area is defined via a patch texture and a starting point
 struct Fill(f32, f32, glium::texture::Texture2d);
 
+/// Enum for every possible shape object
+// We need this for a Vec<Shape> so that we can store the original order of
+// every drawing. It's still easier to have seperate structs for the relevant
+// data so we can have a function
+//     draw_text(&mut Frame, &Text)
+// instead of
+//     draw_text(&mut Frame, f32, f32, f32, color::Color, &String)
+// or
+//     draw_text(&mut Frame, &Shape), which would require pattern matching twice
+enum Shape {
+    Line(Line),
+    Text(Text),
+    Fill(Fill),
+}
 
 /// A `TurtleScreen` is a window that houses a turtle. It provides some graphic
 /// methods, but you should use a `Turtle` instead.
 pub struct TurtleScreen {
     window: glium::backend::glutin_backend::GlutinFacade,
     program: glium::Program,
-    lines: Vec<Line>,
-    texts: Vec<Text>,
-    patches: Vec<Fill>,
+    shapes: Vec<Shape>,
     _is_closed: bool,
     ferris: glium::texture::Texture2d,
     ferris_program: glium::Program,
@@ -155,9 +167,7 @@ impl TurtleScreen {
         TurtleScreen {
             window: window,
             program: program,
-            lines: Vec::new(),
-            texts: Vec::new(),
-            patches: Vec::new(),
+            shapes: Vec::new(),
             _is_closed: false,
             ferris: ferris_texture,
             ferris_program: ferris_program,
@@ -174,12 +184,12 @@ impl TurtleScreen {
 
     /// Add a line to the collection, going from point start to point end
     pub fn add_line(&mut self, start: (f32, f32), end: (f32, f32), color: color::Color) {
-        self.lines.push(Line(start.0, start.1, end.0, end.1, color));
+        self.shapes.push(Shape::Line(Line(start.0, start.1, end.0, end.1, color)));
     }
 
     /// Add a new text to the screen
     pub fn add_text(&mut self, anchor: (f32, f32), angle: f32, color: color::Color, text: &str) {
-        self.texts.push(Text(anchor.0, anchor.1, angle, color, text.to_string()));
+        self.shapes.push(Shape::Text(Text(anchor.0, anchor.1, angle, color, text.to_string())));
     }
 
     /// Floodfill the image at the given point with the given color
@@ -208,16 +218,15 @@ impl TurtleScreen {
         // We need to translate back the start coordinates
         let (trans_x, trans_y) = (px as f32 - width as f32 / 2.,
                                   height as f32 / 2. - py as f32);
-        self.patches.push(Fill(trans_x, trans_y,
-                               glium::texture::Texture2d::new(&self.window, patch)));
+        self.shapes.push(Shape::Fill(
+            Fill(trans_x, trans_y,
+                 glium::texture::Texture2d::new(&self.window, patch))));
     }
 
     /// Remove all drawn lines. Note that this does not change the turtle's
     /// position, color or orientation.
     pub fn clear(&mut self) {
-        self.lines.clear();
-        self.texts.clear();
-        self.patches.clear();
+        self.shapes.clear();
     }
 
     /// Draw everything and update the screen
@@ -234,12 +243,12 @@ impl TurtleScreen {
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ];
-        for fill in self.patches.iter() {
-            self.draw_fill(&mut frame, fill, matrix);
-        }
-        self.draw_lines(&mut frame, matrix);
-        for text in self.texts.iter() {
-            self.draw_text(&mut frame, text);
+        for shape in &self.shapes {
+            match *shape {
+                Shape::Line(ref l) => self.draw_line(&mut frame, l, matrix),
+                Shape::Text(ref t) => self.draw_text(&mut frame, t),
+                Shape::Fill(ref f) => self.draw_fill(&mut frame, f, matrix),
+            }
         }
         if !self.turtle_hidden {
             self.draw_turtle(&mut frame, matrix);
@@ -272,15 +281,13 @@ impl TurtleScreen {
             .unwrap();
     }
 
-    fn draw_lines(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {
+    fn draw_line(&self, frame: &mut glium::Frame, line: &Line, matrix: ScaleMatrix) {
         use std::default::Default;
         use self::color::to_array;
         let mut points: Vec<Point> = Vec::new();
-        for line in self.lines.iter() {
-            let Line(x1, y1, x2, y2, color) = *line;
-            points.push(Point { coords: [x1, y1], color: to_array(color) });
-            points.push(Point { coords: [x2, y2], color: to_array(color) });
-        }
+        let Line(x1, y1, x2, y2, color) = *line;
+        points.push(Point { coords: [x1, y1], color: to_array(color) });
+        points.push(Point { coords: [x2, y2], color: to_array(color) });
         let vertex_buffer = glium::VertexBuffer::new(&self.window, &points);
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
         let uniforms = uniform! { matrix: matrix };
