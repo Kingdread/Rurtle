@@ -6,7 +6,7 @@
 //! resulting image. Then the colored "blob" is saved and copied onto the
 //! turtle window
 use image::{self, GenericImage};
-use std::collections::BitVec;
+use bit_vec::BitVec;
 
 /// Internal structure to simulate a 2d grid of true/false values
 /// Faster than using a HashSet with (x, y) keys.
