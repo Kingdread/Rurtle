@@ -5,8 +5,7 @@
 //! First, the image is rasterized and a normal floodfill is performed on the
 //! resulting image. Then the colored "blob" is saved and copied onto the
 //! turtle window
-extern crate image;
-use self::image::GenericImage;
+use image::{self, GenericImage};
 use std::collections::BitVec;
 
 /// Internal structure to simulate a 2d grid of true/false values

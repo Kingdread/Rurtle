@@ -1,7 +1,9 @@
 #![feature(bitvec)]
 #[macro_use]
 extern crate glium;
+extern crate glium_text;
 extern crate image;
+extern crate nalgebra as na;
 
 pub mod graphic;
 pub mod turtle;

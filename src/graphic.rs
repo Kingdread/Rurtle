@@ -26,12 +26,10 @@
 //! screen.turtle_orientation = 315.0;
 //! screen.draw_and_update();
 //! ```
-extern crate glium;
-extern crate glium_text;
-extern crate image;
-extern crate nalgebra as na;
-use image::GenericImage;
-use glium::Surface;
+use image::{self, GenericImage};
+use glium::{self, Surface};
+use glium_text;
+use na;
 use std::io;
 use super::floodfill as ff;
 

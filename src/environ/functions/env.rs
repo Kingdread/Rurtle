@@ -1,4 +1,3 @@
-extern crate image;
 use super::{Environment, ResultType, RuntimeError, Value};
 use std::fs;
 
@@ -27,7 +26,7 @@ pub fn screenshot(env: &mut Environment, args: &[Value]) -> ResultType {
             Ok(f) => f,
             Err(e) => return Err(RuntimeError(format!("{}", e))),
         };
-        match shot.save(&mut file, image::ImageFormat::PNG) {
+        match shot.save(&mut file, ::image::ImageFormat::PNG) {
             Ok(()) => Ok(Value::Nothing),
             Err(e) => Err(RuntimeError(format!("{}", e))),
         }
