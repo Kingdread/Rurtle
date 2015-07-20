@@ -154,7 +154,7 @@ impl TurtleScreen {
         };
         let ferris_image = image::load(io::Cursor::new(FERRIS_BYTES),
                                        image::ImageFormat::PNG).unwrap();
-        let ferris_texture = glium::texture::Texture2d::new(&window, ferris_image);
+        let ferris_texture = glium::texture::Texture2d::new(&window, ferris_image).unwrap();
         let ferris_program = glium::Program::from_source(&window, FERRIS_VERTEX,
                                                          FERRIS_FRAGMENT, None) .unwrap();
         let patch_program = glium::Program::from_source(&window, PATCH_VERTEX,
@@ -218,7 +218,7 @@ impl TurtleScreen {
                                   height as f32 / 2. - py as f32);
         self.shapes.push(Shape::Fill(
             Fill(trans_x, trans_y,
-                 glium::texture::Texture2d::new(&self.window, patch))));
+                 glium::texture::Texture2d::new(&self.window, patch).unwrap())));
     }
 
     /// Remove all drawn lines. Note that this does not change the turtle's
@@ -260,7 +260,7 @@ impl TurtleScreen {
                                texture.get_height().unwrap() as f32);
         let vertex_buffer = glium::VertexBuffer::new(
             &self.window,
-            vec![
+            &vec![
                 // Bottom left corner
                 FerrisPoint { coords: [x, y - height], tex_coords: [0., 0.] },
                 // Bottom right corner
@@ -275,8 +275,8 @@ impl TurtleScreen {
             matrix: matrix,
             texture_data: texture,
         };
-        frame.draw(&vertex_buffer, &indices, &self.patch_program, &uniforms, &Default::default())
-            .unwrap();
+        frame.draw(&vertex_buffer.unwrap(), &indices, &self.patch_program, &uniforms,
+                   &Default::default()).unwrap();
     }
 
     fn draw_line(&self, frame: &mut glium::Frame, line: &Line, matrix: ScaleMatrix) {
@@ -289,7 +289,7 @@ impl TurtleScreen {
         let vertex_buffer = glium::VertexBuffer::new(&self.window, &points);
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
         let uniforms = uniform! { matrix: matrix };
-        frame.draw(&vertex_buffer, &indices, &self.program, &uniforms, &Default::default())
+        frame.draw(&vertex_buffer.unwrap(), &indices, &self.program, &uniforms, &Default::default())
             .unwrap();
     }
 
@@ -346,7 +346,7 @@ impl TurtleScreen {
 
         let vertex_buffer = glium::VertexBuffer::new(
             &self.window,
-            vec![
+            &vec![
                 // Bottom left corner
                 FerrisPoint { coords: [tx - DX, ty - DY], tex_coords: [0., 0.] },
                 // Bottom right corner
@@ -364,8 +364,8 @@ impl TurtleScreen {
             tip_x: tx,
             tip_y: ty,
         };
-        frame.draw(&vertex_buffer, &indices, &self.ferris_program, &uniforms, &Default::default())
-            .unwrap();
+        frame.draw(&vertex_buffer.unwrap(), &indices, &self.ferris_program, &uniforms,
+                   &Default::default()).unwrap();
     }
 
     /// Poll the window's events and handle them
