@@ -52,6 +52,8 @@ pub enum Token {
     OpMul,
     /// Operator "division" /
     OpDiv,
+    /// Operator "define" :=
+    OpDefine,
     /// Keyword "LEARN"
     KeyLearn,
     /// Keyword "DO"
@@ -176,7 +178,14 @@ impl Tokenizer {
                 ')' => self.push(Token::RParens),
                 '[' => self.push(Token::LBracket),
                 ']' => self.push(Token::RBracket),
-                ':' => self.push(Token::Colon),
+                ':' => {
+                    if let Some(&'=') = chars.peek() {
+                        chars.next().unwrap();
+                        self.push(Token::OpDefine);
+                    } else {
+                        self.push(Token::Colon);
+                    }
+                },
                 '+' => self.push(Token::OpPlus),
                 '-' => self.push(Token::OpMinus),
                 '*' => self.push(Token::OpMul),

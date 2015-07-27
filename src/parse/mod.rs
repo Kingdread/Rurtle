@@ -400,9 +400,18 @@ impl Parser {
                 Ok(List(list))
             },
             Token::Colon => {
-                if let Token::Word(name) = self.peek() {
-                    try!(self.pop_left());
-                    Ok(Variable(name))
+                if let Token::Word(name) = try!(self.pop_left()) {
+                    if self.tokens.is_empty() {
+                        Ok(Variable(name))
+                    } else {
+                        if let Token::OpDefine = self.peek() {
+                            try!(self.pop_left());
+                            let value = try!(self.parse_expression());
+                            Ok(Assignment(name, Box::new(value)))
+                        } else {
+                            Ok(Variable(name))
+                        }
+                    }
                 } else {
                     parse_error!(self, UnexpectedToken("Token::Word", try!(self.pop_left())))
                 }

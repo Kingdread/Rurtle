@@ -191,6 +191,8 @@ impl Environment {
                 self.eval_return_statement(value),
             TryStatement(ref normal, ref exception) =>
                 self.eval_try_statement(normal, exception),
+            Assignment(ref name, ref value) =>
+                self.eval_assignment(name, value),
             List(ref elements) =>
                 self.eval_list(elements),
             StringLiteral(ref string) =>
@@ -359,6 +361,12 @@ impl Environment {
         Ok(Value::Nothing)
     }
 
+    fn eval_assignment(&mut self, name: &str, value: &Node) -> ResultType {
+        let value = try!(self.eval(value));
+        self.current_frame().locals.insert(name.into(), value.clone());
+        Ok(value)
+    }
+
     fn eval_list(&mut self, elements: &Vec<Node>) -> ResultType {
         let mut result = Vec::new();
         for node in elements {
@@ -391,6 +399,8 @@ impl Environment {
     }
 
     fn pop_inner_frame(&mut self) {
+        debug_assert!(self.current_frame().functions.len() > 1,
+                      "trying to pop single inner frame");
         self.current_frame().functions.pop().unwrap();
     }
 

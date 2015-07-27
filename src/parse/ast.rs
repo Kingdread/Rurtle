@@ -32,6 +32,7 @@ pub enum Node {
     /// A function call (function, arguments)
     FuncCall(String, Vec<Node>),
     ReturnStatement(Box<Node>),
+    Assignment(String, Box<Node>),
     List(Vec<Node>),
     StringLiteral(String),
     Number(f32),
@@ -95,6 +96,7 @@ impl Node {
                                                              Box::new(operand2.flatten())),
             ReturnStatement(value) => ReturnStatement(Box::new(value.flatten())),
             FuncCall(name, args) => FuncCall(name, flatten(args)),
+            Assignment(name, value) => Assignment(name, Box::new(value.flatten())),
             node => node,
         }
     }
