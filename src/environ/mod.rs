@@ -11,6 +11,7 @@ use self::value::Value;
 use super::parse::ast::{Node, AddOp, MulOp, CompOp};
 use super::turtle;
 use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Debug, Clone)]
 pub struct RuntimeError(String);
@@ -58,8 +59,35 @@ impl Clone for Function {
     }
 }
 
+/// Helper function to get a pointer without needing to type the type
+fn pointer<T>(x: &T) -> *const T { x as *const T }
+
+impl fmt::Debug for Function {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        use self::Function::*;
+        match *self {
+            Defined(ref node) => {
+                write!(fmt, "Defined({:?})", node)
+            },
+            Native(count, function) => {
+                write!(fmt, "Native({:?}, {:?})", count, pointer(&function))
+            },
+        }
+    }
+}
+
+macro_rules! framed {
+    ($s:expr, $what:expr) => {
+        {
+            $s.push_inner_frame();
+            let result = $what;
+            $s.pop_inner_frame();
+            result
+        }
+    }
+}
+
 pub struct Environment {
-    functions: HashMap<String, Function>,
     stack: Vec<stack::Frame>,
     turtle: turtle::Turtle,
 }
@@ -68,7 +96,6 @@ impl Environment {
     /// Construct a new `Environment` with default values
     pub fn new(turtle: turtle::Turtle) -> Environment {
         Environment {
-            functions: functions::default_functions(),
             stack: stack::new_stack(),
             turtle: turtle,
         }
@@ -82,19 +109,38 @@ impl Environment {
     /// passing it to `Parser::parse`
     pub fn function_arg_count(&self) -> HashMap<String, i32> {
         let mut result = HashMap::new();
-        for (name, function) in self.functions.iter() {
-            let count = match *function {
-                Function::Native(i, _) => i,
-                Function::Defined(ref node) => {
-                    match *node {
-                        Node::LearnStatement(_, ref args, _) => args.len() as i32,
-                        _ => panic!("Function node is not a LearnStatement"),
-                    }
-                },
-            };
-            result.insert(name.clone(), count);
+        // We walk the stack and insert the functions of each frame into the
+        // "global stack" of the parser. If a function is redefined in a "tighter"
+        // stack, it will overwrite the more general version
+        for stack_frame in &self.stack {
+            for mini_frame in &stack_frame.functions {
+                for (name, function) in mini_frame {
+                    let count = match *function {
+                        Function::Native(i, _) => i,
+                        Function::Defined(ref node) => {
+                            match *node {
+                                Node::LearnStatement(_, ref args, _) => args.len() as i32,
+                                _ => panic!("Function node is not a LearnStatement"),
+                            }
+                        },
+                    };
+                    result.insert(name.clone(), count);
+                }
+            }
         }
         result
+    }
+
+    fn find_function(&self, name: &str) -> Option<&Function> {
+        for stack_frame in self.stack.iter().rev() {
+            for mini_frame in stack_frame.functions.iter().rev() {
+                match mini_frame.get(name) {
+                    Some(f) => return Some(f),
+                    None => (),
+                }
+            }
+        }
+        None
     }
 
     /// Tokenize, parse and evaluate the given source
@@ -169,9 +215,9 @@ impl Environment {
     {
         let value = try!(self.eval(condition));
         if value.boolean() {
-            try!(self.eval(true_body));
+            try!(framed!(self, self.eval(true_body)));
         } else if let &Some(ref false_body) = false_body {
-            try!(self.eval(false_body));
+            try!(framed!(self, self.eval(false_body)));
         }
         Ok(Value::Nothing)
     }
@@ -180,7 +226,7 @@ impl Environment {
         let num = try!(self.eval(num));
         if let Value::Number(num) = num {
             for _ in (0..num as i32) {
-                try!(self.eval(body));
+                try!(framed!(self, self.eval(body)));
             }
             Ok(Value::Nothing)
         } else {
@@ -190,14 +236,15 @@ impl Environment {
 
     fn eval_while_statement(&mut self, condition: &Node, body: &Node) -> ResultType {
         while try!(self.eval(condition)).boolean() {
-            try!(self.eval(body));
+            try!(framed!(self, self.eval(body)));
         }
         Ok(Value::Nothing)
     }
 
     fn eval_learn_statement(&mut self, statement: &Node) -> ResultType {
         if let Node::LearnStatement(ref name, _, _) = *statement {
-            self.functions.insert(name.clone(), Function::Defined(statement.clone()));
+            self.current_frame().functions.last_mut().unwrap()
+                .insert(name.clone(), Function::Defined(statement.clone()));
             Ok(Value::Nothing)
         } else {
             panic!("{:?} is not a LearnStatement", statement);
@@ -205,10 +252,12 @@ impl Environment {
     }
 
     fn eval_try_statement(&mut self, normal: &Node, exception: &Node) -> ResultType {
-        let result = self.eval(normal);
+        let result = framed!(self, self.eval(normal));
         match result {
             Ok(_) => Ok(Value::Nothing),
-            Err(_) => self.eval(exception),
+            Err(_) => {
+                framed!(self, self.eval(exception))
+            },
         }
     }
 
@@ -262,7 +311,7 @@ impl Environment {
     }
 
     fn eval_func_call(&mut self, name: &String, arg_nodes: &Vec<Node>) -> ResultType {
-        let function = match self.functions.get(&name.to_uppercase()) {
+        let function = match self.find_function(&name.to_uppercase()) {
             Some(f) => f.clone(),
             None => return Err(RuntimeError(format!("function {} not found", name))),
         };
@@ -291,8 +340,9 @@ impl Environment {
             frame.locals.insert(name.clone(), value);
         }
         self.stack.push(frame);
-        try!(self.eval(body));
+        let result = self.eval(body);
         frame = self.stack.pop().unwrap();
+        try!(result);
         match frame.return_value {
             Some(value) => Ok(value),
             None => Ok(Value::Nothing),
@@ -334,6 +384,14 @@ impl Environment {
     /// Return the global frame
     pub fn global_frame(&mut self) -> &mut stack::Frame {
         &mut self.stack[0]
+    }
+
+    fn push_inner_frame(&mut self) {
+        self.current_frame().functions.push(HashMap::new());
+    }
+
+    fn pop_inner_frame(&mut self) {
+        self.current_frame().functions.pop().unwrap();
     }
 
     /// Retrieve the value for the variable with the given name

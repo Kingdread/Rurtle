@@ -53,7 +53,7 @@ pub type FuncMap = HashMap<String, i32>;
 /// A `Parser` builds an AST from the given input token stream.
 pub struct Parser {
     tokens: VecDeque<MetaToken>,
-    functions: FuncMap,
+    scope_stack: Vec<Scope>,
     last_line: u32,
 }
 
@@ -110,6 +110,19 @@ impl error::Error for ParseError {
 
 pub type ParseResult = Result<Node, ParseError>;
 
+#[derive(Debug, Clone)]
+struct Scope {
+    functions: FuncMap,
+}
+
+impl Scope {
+    pub fn new() -> Scope {
+        Scope {
+            functions: FuncMap::new(),
+        }
+    }
+}
+
 /// Always returns an `Err` value but attaches the required meta information
 /// (such as line number)
 macro_rules! parse_error {
@@ -136,9 +149,12 @@ macro_rules! expect {
 impl Parser {
     /// Construct a new `Parser`, consuming the given tokens.
     pub fn new(tokens: VecDeque<MetaToken>, functions: FuncMap) -> Parser {
+        let global_scope = Scope {
+            functions: functions,
+        };
         Parser {
             tokens: tokens,
-            functions: functions,
+            scope_stack: vec![global_scope],
             last_line: 0,
         }
     }
@@ -146,6 +162,30 @@ impl Parser {
     /// Attempt to return the root node
     pub fn parse(&mut self) -> ParseResult {
         self.parse_statement_list()
+    }
+
+    fn current_scope_mut(&mut self) -> &mut Scope {
+        self.scope_stack.last_mut().expect("scope_stack is empty, should have global scope")
+    }
+
+    fn push_scope(&mut self) {
+        self.scope_stack.push(Scope::new())
+    }
+
+    fn pop_scope(&mut self) {
+        debug_assert!(self.scope_stack.len() > 1, "Trying to pop global scope");
+        self.scope_stack.pop().expect("scope_stack is empty, should have global scope");
+    }
+
+    fn find_function_arg_count(&self, name: &str) -> Option<i32> {
+        for scope in self.scope_stack.iter().rev() {
+            let function_map = &scope.functions;
+            match function_map.get(name) {
+                Some(i) => return Some(*i),
+                None => {},
+            }
+        }
+        None
     }
 
     fn peek(&self) -> Token {
@@ -171,6 +211,8 @@ impl Parser {
     }
 
     fn parse_loop_body(&mut self) -> ParseResult {
+        // Loop bodies generally introduce new scopes
+        self.push_scope();
         let mut statements = Vec::new();
         while !self.tokens.is_empty() {
             match self.peek() {
@@ -180,6 +222,7 @@ impl Parser {
                 },
             }
         }
+        self.pop_scope();
         Ok(StatementList(statements))
     }
 
@@ -217,7 +260,7 @@ impl Parser {
         }
         // We need the argument count for this function if it appears later
         // during the parsing stage (e.g. in a recursive call)
-        self.functions.insert(name.clone(), variables.len() as i32);
+        self.current_scope_mut().functions.insert(name.clone(), variables.len() as i32);
         let statements = try!(self.parse_loop_body());
         expect!(self, Token::KeyEnd);
         Ok(LearnStatement(name, variables, Box::new(statements)))
@@ -366,8 +409,8 @@ impl Parser {
             },
             // A function call
             Token::Word(name) => {
-                let argument_count = match self.functions.get(&name.to_uppercase()) {
-                    Some(i) => *i,
+                let argument_count = match self.find_function_arg_count(&name.to_uppercase()) {
+                    Some(i) => i,
                     None => parse_error!(self, UnknownFunction(name)),
                 };
                 let mut arguments = Vec::new();
