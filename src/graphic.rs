@@ -300,7 +300,7 @@ impl TurtleScreen {
         let angle = ::std::f32::consts::PI * angle_deg / 180.;
         let sin_d = angle.sin();
         let cos_d = angle.cos();
-        let text = glium_text::TextDisplay::new(&self.text_system, &self.font, data);
+        let text_display = glium_text::TextDisplay::new(&self.text_system, &self.font, data);
         let (width, height) = frame.get_dimensions();
         // Note that this is not column-major layout
         let rotation_matrix = na::Mat4::new(
@@ -318,7 +318,7 @@ impl TurtleScreen {
             0., 1., 0., pos_y * 2. / height as f32,
             0., 0., 1., 0.,
             0., 0., 0., 1.);
-        glium_text::draw(&text, &self.text_system, frame,
+        glium_text::draw(&text_display, &self.text_system, frame,
                          *(translate_matrix * scale_matrix * rotation_matrix).as_array(),
                          text_color);
     }

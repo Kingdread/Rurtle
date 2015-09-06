@@ -26,9 +26,11 @@ use std::sync::mpsc;
 const PROMPT: &'static str = "Rurtle> ";
 
 fn main() {
-    let screen = graphic::TurtleScreen::new((640, 640), "Rurtle");
-    let turtle = turtle::Turtle::new(screen);
-    let mut environ = environ::Environment::new(turtle);
+    let mut environ = {
+        let screen = graphic::TurtleScreen::new((640, 640), "Rurtle");
+        let turtle = turtle::Turtle::new(screen);
+        environ::Environment::new(turtle)
+    };
     for filename in env::args().skip(1) {
         let mut file = fs::File::open(&filename).unwrap();
         let mut source = String::new();

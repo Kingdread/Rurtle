@@ -80,8 +80,8 @@ pub fn floodfill(img: &image::DynamicImage, start: (u32, u32), color: (u8, u8, u
         visited.set(x, y);
     }
     let (min_x, max_x, min_y, max_y) = find_min_max(&result);
-    let (width, height) = (max_x - min_x + 1, max_y - min_y + 1);
-    let mut image = image::DynamicImage::new_rgba8(width, height);
+    let (patch_width, patch_height) = (max_x - min_x + 1, max_y - min_y + 1);
+    let mut image = image::DynamicImage::new_rgba8(patch_width, patch_height);
     for (x, y) in result {
         image.put_pixel(x - min_x, y - min_y, image::Rgba { data: target_color } );
     }
