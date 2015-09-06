@@ -56,11 +56,8 @@ impl Turtle {
     /// implement everything else
     fn goto(&mut self, x: f32, y: f32) {
         let start_position = self.position;
-        match self.pen {
-            PenState::PenDown => {
-                self.screen.add_line(start_position, (x, y), self.color);
-            }
-            _ => (),
+        if let PenState::PenDown = self.pen {
+            self.screen.add_line(start_position, (x, y), self.color);
         }
         self.position = (x, y);
         self.screen.turtle_position = self.position;
