@@ -139,7 +139,7 @@ impl TurtleScreen {
     pub fn new(size: (u32, u32), title: &str) -> TurtleScreen {
         use glium::DisplayBuild;
         let builder = glium::glutin::WindowBuilder::new()
-            .with_title(title.to_string())
+            .with_title(title.to_owned())
             .with_dimensions(size.0, size.1)
             .build_glium();
         let window = match builder {
@@ -187,7 +187,7 @@ impl TurtleScreen {
 
     /// Add a new text to the screen
     pub fn add_text(&mut self, anchor: (f32, f32), angle: f32, color: color::Color, text: &str) {
-        self.shapes.push(Shape::Text(Text(anchor.0, anchor.1, angle, color, text.to_string())));
+        self.shapes.push(Shape::Text(Text(anchor.0, anchor.1, angle, color, text.to_owned())));
     }
 
     /// Floodfill the image at the given point with the given color

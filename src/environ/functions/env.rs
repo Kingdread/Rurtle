@@ -39,7 +39,7 @@ pub fn prompt(_: &mut Environment, args: &[Value]) -> ResultType {
         let input = super::super::super::readline::readline(prompt_string);
         match input {
             Some(i) => Ok(Value::String(i)),
-            None => Err(RuntimeError("No input to get".to_string())),
+            None => Err(RuntimeError("No input to get".to_owned())),
         }
     })
 }

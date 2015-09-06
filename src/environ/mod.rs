@@ -232,7 +232,7 @@ impl Environment {
             }
             Ok(Value::Nothing)
         } else {
-            Err(RuntimeError("repeat count has to be a number".to_string()))
+            Err(RuntimeError("repeat count has to be a number".to_owned()))
         }
     }
 
@@ -353,7 +353,7 @@ impl Environment {
 
     fn eval_return_statement(&mut self, value: &Node) -> ResultType {
         if self.current_frame().is_global {
-            return Err(RuntimeError("Return not in a function".to_string()));
+            return Err(RuntimeError("Return not in a function".to_owned()));
         }
         let value = try!(self.eval(value));
         self.current_frame().return_value = Some(value);

@@ -68,7 +68,7 @@ macro_rules! map {
     ($($k:expr => $v:expr,) *) => {
         {
             let mut result = HashMap::new();
-            $(result.insert($k.to_string(), $v);)*
+            $(result.insert($k.to_owned(), $v);)*
             result
         }
     }

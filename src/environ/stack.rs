@@ -45,7 +45,7 @@ impl Default for Frame {
 pub fn new_stack() -> Vec<Frame> {
     vec![Frame {
         functions: vec![functions::default_functions()],
-        fn_name: "<global>".to_string(),
+        fn_name: "<global>".to_owned(),
         is_global: true,
         .. Frame::default()
     }]

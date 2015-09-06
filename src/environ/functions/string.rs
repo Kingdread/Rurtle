@@ -30,6 +30,6 @@ pub fn split(_: &mut Environment, args: &[Value]) -> ResultType {
               arg Value::String(ref string),
               arg Value::String(ref pattern), =>
     {
-        Ok(Value::List(string.split(pattern).map(|s| Value::String(s.to_string())).collect()))
+        Ok(Value::List(string.split(pattern).map(|s| Value::String(s.to_owned())).collect()))
     })
 }

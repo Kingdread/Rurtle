@@ -41,7 +41,7 @@ mod module {
     ///
     /// This function panics if the given prompt contains nul-bytes ('\0')
     pub fn readline(prompt: &str) -> Option<String> {
-        let c_prompt = CString::new(prompt.to_string()).ok()
+        let c_prompt = CString::new(prompt.to_owned()).ok()
             .expect("The given prompt contains NUL bytes");
         let result_ptr = unsafe { sys::readline(c_prompt.as_ptr()) };
         // If readline returns NULL we know that EOF is encountered.

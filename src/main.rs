@@ -70,7 +70,7 @@ fn main() {
                 send_signal = true;
                 source
             },
-            Err(Empty) => "".to_string(),
+            Err(Empty) => "".to_owned(),
             Err(Disconnected) => break,
         };
         if !source.is_empty() {
