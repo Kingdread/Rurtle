@@ -127,10 +127,20 @@ impl Scope {
 /// (such as line number)
 macro_rules! parse_error {
     ($s:expr, $k:expr) => {
-        return Err(ParseError {
-            line_number: $s.last_line,
-            kind: $k,
-        })
+        {
+            // This is a very dirty hack to make clippy shut up about "needless return"
+            // we can't just omit return here since the macro may be used to exit a
+            // function early.
+            // The "if true" should be optmized away, but it's enough to make rustc and
+            // clippy happy. And if they're happy, I am too.
+            if true {
+                return Err(ParseError {
+                    line_number: $s.last_line,
+                    kind: $k,
+                })
+            };
+            unreachable!("parse_error goofed, true no longer considered true")
+        }
     }
 }
 
