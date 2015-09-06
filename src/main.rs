@@ -1,3 +1,6 @@
+#![cfg_attr(feature = "linted", feature(plugin))]
+#![cfg_attr(feature = "linted", plugin(clippy))]
+
 extern crate bit_vec;
 #[macro_use]
 extern crate glium;

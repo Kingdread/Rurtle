@@ -12,6 +12,11 @@ path = "src/lib.rs"
 name = "rurtle"
 doc = false
 
+[features]
+default = []
+# Clippy only works with nightly Rust, so we optionally enable it
+linted = ["clippy"]
+
 [dependencies]
 glium = "*"
 glium_text = "*"
@@ -19,3 +24,7 @@ nalgebra = "*"
 image = "*"
 libc = "*"
 bit-vec = "*"
+
+[dependencies.clippy]
+version = "*"
+optional = true

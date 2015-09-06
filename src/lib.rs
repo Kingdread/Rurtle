@@ -6,6 +6,9 @@
 //! However, since the addition of text support (a0b9483), we link to freetype.
 //! To install freetype on Windows please see [the Piston getting started guide]
 //! (https://github.com/bvssvni/Piston-Tutorials/tree/master/getting-started#freetype-on-windows).
+#![cfg_attr(feature = "linted", feature(plugin))]
+#![cfg_attr(feature = "linted", plugin(clippy))]
+
 extern crate bit_vec;
 #[macro_use]
 extern crate glium;
