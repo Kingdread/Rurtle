@@ -97,8 +97,6 @@ fn main() {
     // dropped (e.g. if we got EOF'd). The signal is then unnecessary and the
     // second thread is already dead. We just want the compiler to shut up about
     // "unused result which must be used" :)
-    match hermes_out.send(true) {
-        _ => (),
-    }
+    hermes_out.send(true).unwrap_or(());
     guard.join().unwrap();
 }
