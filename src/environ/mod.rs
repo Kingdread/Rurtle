@@ -80,9 +80,9 @@ macro_rules! framed {
     ($s:expr, $what:expr) => {
         {
             $s.push_inner_frame();
-            let result = $what;
+            let framed_result = $what;
             $s.pop_inner_frame();
-            result
+            framed_result
         }
     }
 }
