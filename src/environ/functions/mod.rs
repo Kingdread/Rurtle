@@ -2,6 +2,11 @@
 //!
 //! All functions that should be "built in" into the Rurtle language (all the
 //! fundamental stuff) are defined here or in submodules.
+
+// We "need" identity_op for the get_args! macro since it will expand to 0+1
+// at some point and clippy doesn't like that
+#![cfg_attr(feature = "linted", allow(identity_op))]
+
 pub use super::{Environment, Function, ResultType, RuntimeError};
 pub use super::value::Value;
 use super::Function::Native;
