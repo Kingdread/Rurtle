@@ -26,7 +26,7 @@
 //! screen.turtle_orientation = 315.0;
 //! screen.draw_and_update();
 //! ```
-use image::{self, GenericImage, Pixel};
+use image::{self, GenericImage};
 use glium::{self, Surface};
 use glium_text;
 use na;
