@@ -26,7 +26,7 @@
 //! screen.turtle_orientation = 315.0;
 //! screen.draw_and_update();
 //! ```
-use image::{self, GenericImage};
+use image::{self, GenericImage, Pixel};
 use glium::{self, Surface};
 use glium_text;
 use na;
@@ -154,7 +154,7 @@ impl TurtleScreen {
         };
         let ferris_image = image::load(io::Cursor::new(FERRIS_BYTES),
                                        image::ImageFormat::PNG).unwrap();
-        let ferris_texture = glium::texture::Texture2d::new(&window, ferris_image).unwrap();
+        let ferris_texture = image_to_texture(&window, ferris_image).unwrap();
         let ferris_program = glium::Program::from_source(&window, FERRIS_VERTEX,
                                                          FERRIS_FRAGMENT, None) .unwrap();
         let patch_program = glium::Program::from_source(&window, PATCH_VERTEX,
@@ -218,7 +218,7 @@ impl TurtleScreen {
                                   height as f32 / 2. - py as f32);
         self.shapes.push(Shape::Fill(
             Fill(trans_x, trans_y,
-                 glium::texture::Texture2d::new(&self.window, patch).unwrap())));
+                 image_to_texture(&self.window, patch).expect("Conversion to texture failed"))));
     }
 
     /// Remove all drawn lines. Note that this does not change the turtle's
@@ -319,7 +319,7 @@ impl TurtleScreen {
             0., 0., 1., 0.,
             0., 0., 0., 1.);
         glium_text::draw(&text_display, &self.text_system, frame,
-                         *(translate_matrix * scale_matrix * rotation_matrix).as_array(),
+                         *(translate_matrix * scale_matrix * rotation_matrix).as_ref(),
                          text_color);
     }
 
@@ -391,6 +391,31 @@ impl TurtleScreen {
 
     /// Return the current screen as an image
     pub fn screenshot(&self) -> image::DynamicImage {
-        self.window.read_front_buffer()
+        raw_image_to_image(self.window.read_front_buffer())
     }
+}
+
+/// Convert an image::DynamicImage to a glium::texture::Texture2d
+fn image_to_texture<F: glium::backend::Facade>(display: &F, im: image::DynamicImage)
+    -> Result<glium::texture::Texture2d, glium::texture::TextureCreationError>
+{
+    let glium_image = glium::texture::RawImage2d::from_raw_rgba_reversed(
+        im.to_rgba().into_raw(), im.dimensions()
+    );
+    glium::texture::Texture2d::new(display, glium_image)
+}
+
+/// Convert a glium::texture::RawImage2d to an image::DynamicImage
+fn raw_image_to_image(tex: glium::texture::RawImage2d<u8>) -> image::DynamicImage {
+    assert_eq!(tex.format, glium::texture::ClientFormat::U8U8U8U8);
+    let channels = tex.format.get_num_components() as usize;
+    // opengl gives us rows from bottom to top, so we need to flip them
+    let data: Vec<u8> = tex.data
+        .chunks(tex.width as usize * channels)
+        .rev()
+        .flat_map(|row| row.iter())
+        .cloned()
+        .collect();
+    let buffer = image::ImageBuffer::from_vec(tex.width, tex.height, data);
+    image::DynamicImage::ImageRgba8(buffer.expect("Conversion to DynamicImage failed"))
 }
