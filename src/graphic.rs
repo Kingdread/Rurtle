@@ -372,12 +372,9 @@ impl TurtleScreen {
     pub fn handle_events(&mut self) {
         use glium::glutin::Event;
         for event in self.window.poll_events() {
-            match event {
-                Event::Closed => {
-                    self._is_closed = true;
-                    self.window.get_window().unwrap().hide();
-                },
-                _ => (),
+            if let Event::Closed =  event {
+                self._is_closed = true;
+                self.window.get_window().unwrap().hide();
             }
         }
     }

@@ -102,7 +102,7 @@ impl error::Error for ParseError {
     fn description(&self) -> &str {
         match self.kind {
             UnexpectedToken(..) => "unexpected token",
-            UnexpectedEnd(..) => "unexpected end",
+            UnexpectedEnd => "unexpected end",
             UnknownFunction(..) => "unknown function",
         }
     }
@@ -433,7 +433,7 @@ impl Parser {
                     None => parse_error!(self, UnknownFunction(name)),
                 };
                 let mut arguments = Vec::new();
-                for _ in (0..argument_count) {
+                for _ in 0..argument_count {
                     arguments.push(try!(self.parse_expression()));
                 }
                 Ok(FuncCall(name, arguments))

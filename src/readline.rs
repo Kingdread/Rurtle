@@ -41,7 +41,7 @@ mod module {
     ///
     /// This function panics if the given prompt contains nul-bytes ('\0')
     pub fn readline(prompt: &str) -> Option<String> {
-        let c_prompt = CString::new(prompt.to_owned()).ok()
+        let c_prompt = CString::new(prompt.to_owned())
             .expect("The given prompt contains NUL bytes");
         let result_ptr = unsafe { sys::readline(c_prompt.as_ptr()) };
         // If readline returns NULL we know that EOF is encountered.
@@ -64,7 +64,7 @@ mod module {
     ///
     /// This function panics if the given line contains nul-bytes ('\0')
     pub fn add_history(line: &str) {
-        let c_line = CString::new(line.as_bytes()).ok()
+        let c_line = CString::new(line.as_bytes())
             .expect("The given line contains NUL bytes");
         unsafe {
             sys::add_history(c_line.as_ptr());

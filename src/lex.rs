@@ -170,8 +170,13 @@ impl Tokenizer {
         })
     }
 
+    #[cfg_attr(feature = "linted", allow(while_let_on_iterator))]
     fn tokenize(mut self, input: &str) -> Result<VecDeque<MetaToken>, LexError> {
         let mut chars = input.chars().peekable();
+
+        // This has to be a while-let loop because we might manually advance
+        // the iterator in the loop body. A for loop moves the iterator and
+        // makes this impossible.
         while let Some(c) = chars.next() {
             match c {
                 '(' => self.push(Token::LParens),

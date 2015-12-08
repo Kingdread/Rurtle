@@ -204,7 +204,7 @@ impl Environment {
         }
     }
 
-    fn eval_statement_list(&mut self, statements: &Vec<Node>) -> ResultType {
+    fn eval_statement_list(&mut self, statements: &[Node]) -> ResultType {
         for statement in statements {
             try!(self.eval(statement));
         }
@@ -218,7 +218,7 @@ impl Environment {
         let value = try!(self.eval(condition));
         if value.boolean() {
             try!(framed!(self, self.eval(true_body)));
-        } else if let &Some(ref false_body) = false_body {
+        } else if let Some(ref false_body) = *false_body {
             try!(framed!(self, self.eval(false_body)));
         }
         Ok(Value::Nothing)
@@ -227,7 +227,7 @@ impl Environment {
     fn eval_repeat_statement(&mut self, num: &Node, body: &Node) -> ResultType {
         let num = try!(self.eval(num));
         if let Value::Number(num) = num {
-            for _ in (0..num as i32) {
+            for _ in 0..num as i32 {
                 try!(framed!(self, self.eval(body)));
             }
             Ok(Value::Nothing)
@@ -276,7 +276,7 @@ impl Environment {
         }
     }
 
-    fn eval_addition(&mut self, start: &Node, values: &Vec<(AddOp, Node)>) -> ResultType {
+    fn eval_addition(&mut self, start: &Node, values: &[(AddOp, Node)]) -> ResultType {
         let mut accum = try!(self.eval(start));
         for &(op, ref value) in values.iter() {
             let value = try!(self.eval(value));
@@ -294,7 +294,7 @@ impl Environment {
         Ok(accum)
     }
 
-    fn eval_multiplication(&mut self, start: &Node, values: &Vec<(MulOp, Node)>) -> ResultType {
+    fn eval_multiplication(&mut self, start: &Node, values: &[(MulOp, Node)]) -> ResultType {
         let mut accum = try!(self.eval(start));
         for &(op, ref value) in values.iter() {
             let value = try!(self.eval(value));
@@ -312,7 +312,7 @@ impl Environment {
         Ok(accum)
     }
 
-    fn eval_func_call(&mut self, name: &String, arg_nodes: &Vec<Node>) -> ResultType {
+    fn eval_func_call(&mut self, name: &str, arg_nodes: &[Node]) -> ResultType {
         let function = match self.find_function(&name.to_uppercase()) {
             Some(f) => f.clone(),
             None => return Err(RuntimeError(format!("function {} not found", name))),
@@ -332,12 +332,12 @@ impl Environment {
         }
     }
 
-    fn call_defined_function(&mut self, name: &String, arg_names: &Vec<String>,
+    fn call_defined_function(&mut self, name: &str, arg_names: &[String],
                              args: Vec<Value>, body: &Node)
                              -> ResultType
     {
         let mut frame = stack::Frame::default();
-        frame.fn_name = name.clone();
+        frame.fn_name = name.into();
         for (name, value) in arg_names.iter().zip(args) {
             frame.locals.insert(name.clone(), value);
         }
@@ -367,7 +367,7 @@ impl Environment {
         Ok(value)
     }
 
-    fn eval_list(&mut self, elements: &Vec<Node>) -> ResultType {
+    fn eval_list(&mut self, elements: &[Node]) -> ResultType {
         let mut result = Vec::new();
         for node in elements {
             result.push(try!(self.eval(node)));
@@ -375,7 +375,7 @@ impl Environment {
         Ok(Value::List(result))
     }
 
-    fn eval_variable(&mut self, name: &String) -> ResultType {
+    fn eval_variable(&mut self, name: &str) -> ResultType {
         match self.get_variable(name) {
             Some(value) => Ok(value),
             None => Err(RuntimeError(format!("Variable {} not found", name))),
@@ -418,6 +418,6 @@ impl Environment {
             }
         }
         let global_frame = self.global_frame();
-        global_frame.locals.get(name).map(|v| v.clone())
+        global_frame.locals.get(name).cloned()
     }
 }

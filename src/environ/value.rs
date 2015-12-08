@@ -157,7 +157,7 @@ impl<'a> ops::Mul for &'a Value {
                 match *other {
                     Value::Number(b) => Some(Value::String({
                         let mut temp = String::new();
-                        for _ in (0..b as i32) {
+                        for _ in 0..b as i32 {
                             temp.push_str(a);
                         }
                         temp
@@ -170,7 +170,7 @@ impl<'a> ops::Mul for &'a Value {
                 match *other {
                     Value::Number(b) => Some(Value::List({
                         let mut temp = Vec::new();
-                        for _ in (0..b as i32) {
+                        for _ in 0..b as i32 {
                             for elem in a.iter() {
                                 temp.push(elem.clone());
                             }

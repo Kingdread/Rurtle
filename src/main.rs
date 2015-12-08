@@ -16,11 +16,9 @@ pub mod environ;
 pub mod readline;
 pub mod floodfill;
 
+use std::{env, fs, thread, time};
 use std::error::Error;
-use std::env;
-use std::fs;
 use std::io::Read;
-use std::thread;
 use std::sync::mpsc;
 
 const PROMPT: &'static str = "Rurtle> ";
@@ -91,7 +89,7 @@ fn main() {
         if send_signal {
             hermes_out.send(false).unwrap();
         }
-        thread::sleep_ms(1000 / 15);
+        thread::sleep(time::Duration::from_millis(1000 / 15));
     };
     // We don't really care about the result since the end_signal may already be
     // dropped (e.g. if we got EOF'd). The signal is then unnecessary and the

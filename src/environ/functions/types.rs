@@ -15,7 +15,7 @@ pub fn tail(_: &mut Environment, args: &[Value]) -> ResultType {
         if values.is_empty() {
             Ok(Value::Nothing)
         } else {
-            Ok(Value::List(values[1..].iter().map(|v| v.clone()).collect()))
+            Ok(Value::List(values[1..].iter().cloned().collect()))
         }
     })
 }
