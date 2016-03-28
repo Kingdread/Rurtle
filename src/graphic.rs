@@ -138,13 +138,16 @@ impl TurtleScreen {
     /// Panics if something in the underlaying glium window creation fails.
     pub fn new(size: (u32, u32), title: &str) -> TurtleScreen {
         use glium::DisplayBuild;
-        let builder = glium::glutin::WindowBuilder::new()
+
+        let mut builder = glium::glutin::WindowBuilder::new()
             .with_title(title.to_owned())
-            .with_dimensions(size.0, size.1)
-            // .with_gl_version((3, 3))
-            .with_gl(glium::glutin::GlRequest::Specific(glium::glutin::Api::OpenGl, (2, 1)))
-            .build_glium();
-        let window = match builder {
+            .with_dimensions(size.0, size.1);
+        if cfg!(target_os = "macos") {
+            // we need to set the legacy (2.1) GL version in
+            // mac osx to work, otherwise our shaders fail.
+            builder = builder.with_gl(glium::glutin::GlRequest::Specific(glium::glutin::Api::OpenGl, (2, 1)))
+        }
+        let window = match builder.build_glium() {
             Err(error) => panic!("Window creation failed: {}", error),
             Ok(win) => win,
         };
