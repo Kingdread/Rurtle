@@ -141,6 +141,8 @@ impl TurtleScreen {
         let builder = glium::glutin::WindowBuilder::new()
             .with_title(title.to_owned())
             .with_dimensions(size.0, size.1)
+            // .with_gl_version((3, 3))
+            .with_gl(glium::glutin::GlRequest::Specific(glium::glutin::Api::OpenGl, (2, 1)))
             .build_glium();
         let window = match builder {
             Err(error) => panic!("Window creation failed: {}", error),
