@@ -149,7 +149,7 @@ macro_rules! expect {
         {
             let token = try!($s.pop_left());
             match token {
-                $t(..) => (),
+                $t => (),
                 _ => parse_error!($s, UnexpectedToken(stringify!($t), token)),
             }
         }
