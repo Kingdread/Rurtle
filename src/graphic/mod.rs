@@ -16,16 +16,35 @@
 //! screen, use the `draw_and_update`-function. To handle events such as mouse
 //! clicks, use `handle_events`.
 //!
+//! # Headless rendering
+//!
+//! If you need to create a headless `TurtleScreen` (e.g. for testing purposes),
+//! it is possible to pass a different type parameter to `TurtleScreen::new`.
+//! The default is `builder::Window`, which creates a window. To get a
+//! window-less render, use `builder::Headless, i.e.`
+//!
+//! ```no_run
+//! # use rurtle::graphic::{TurtleScreen,builder};
+//! let screen = TurtleScreen::new::<builder::Headless>((640, 480), "");
+//! ```
+//! Note that certain attributes (such as the title) might be ignored for
+//! headless windows.
+//!
 //! # Example
 //!
-//! ```
+//! ```no_run
+//! # #![feature(default_type_parameter_fallback)]
 //! # use rurtle::graphic::{TurtleScreen, color};
-//! let mut screen = TurtleScreen::new((640, 480), "Rurtle");
+//! # fn main() {
+//! // Note that this needs feature default_type_parameter_fallback
+//! let mut screen = TurtleScreen::new((640, 480), "Rurtle").unwrap();
 //! screen.add_line((0.0, 0.0), (50.0, 50.0), color::BLACK);
 //! screen.turtle_position = (50.0, 50.0);
 //! screen.turtle_orientation = 315.0;
 //! screen.draw_and_update();
+//! # }
 //! ```
+pub mod builder;
 use image::{self, GenericImage};
 use glium::{self, Surface};
 use glium_text;
@@ -108,7 +127,7 @@ enum Shape {
 /// A `TurtleScreen` is a window that houses a turtle. It provides some graphic
 /// methods, but you should use a `Turtle` instead.
 pub struct TurtleScreen {
-    window: glium::backend::glutin_backend::GlutinFacade,
+    window: builder::Facade,
     program: glium::Program,
     shapes: Vec<Shape>,
     _is_closed: bool,
@@ -133,24 +152,23 @@ pub struct TurtleScreen {
 impl TurtleScreen {
     /// Create a new `TurtleScreen` with the given size and window title.
     ///
-    /// # Panics
-    ///
-    /// Panics if something in the underlaying glium window creation fails.
-    pub fn new(size: (u32, u32), title: &str) -> TurtleScreen {
-        use glium::DisplayBuild;
-
-        let mut builder = glium::glutin::WindowBuilder::new()
-            .with_title(title.to_owned())
-            .with_dimensions(size.0, size.1);
+    /// You can pass different "window builders" as the type parameter which
+    /// allows you to switch between normal rendering and headless rendering.
+    /// Predefined types are available in the `builder` module, i.e.
+    /// `builder::Window` and `builder::Headless`. Note that using the default
+    /// without specifying it requires
+    /// `#![feature(default_type_parameter_fallback)]`
+    pub fn new<B: builder::GliumFactory=builder::Window>(
+               size: (u32, u32),
+               title: &str)
+               -> Result<TurtleScreen, builder::Err> {
+        let mut builder = B::new(size.0, size.1).with_title(title.to_owned());
         if cfg!(target_os = "macos") {
             // we need to set the legacy (2.1) GL version in
             // mac osx to work, otherwise our shaders fail.
             builder = builder.with_gl(glium::glutin::GlRequest::Specific(glium::glutin::Api::OpenGl, (2, 1)))
         }
-        let window = match builder.build_glium() {
-            Err(error) => panic!("Window creation failed: {}", error),
-            Ok(win) => win,
-        };
+        let window = try!(builder::GliumFactory::build_glium(builder));
         let program_builder = glium::Program::from_source(
             &window, VERTEX_SHADER, FRAGMENT_SHADER, None);
         let program = match program_builder {
@@ -167,7 +185,7 @@ impl TurtleScreen {
         let text_system = glium_text::TextSystem::new(&window);
         let font = glium_text::FontTexture::new(&window,
                                                 io::Cursor::new(FONT_DATA), 24).unwrap();
-        TurtleScreen {
+        Ok(TurtleScreen {
             window: window,
             program: program,
             shapes: Vec::new(),
@@ -182,7 +200,7 @@ impl TurtleScreen {
             turtle_orientation: 0.0,
             turtle_hidden: false,
             background_color: color::WHITE,
-        }
+        })
     }
 
     /// Add a line to the collection, going from point start to point end

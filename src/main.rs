@@ -1,5 +1,8 @@
 #![cfg_attr(feature = "linted", feature(plugin))]
 #![cfg_attr(feature = "linted", plugin(clippy))]
+// We use this to allow different WindowBuilders for TurtleScreen while still
+// retaining the default of a window.
+#![feature(default_type_parameter_fallback)]
 
 extern crate bit_vec;
 #[macro_use]
@@ -16,7 +19,7 @@ pub mod environ;
 pub mod readline;
 pub mod floodfill;
 
-use std::{env, fs, thread, time};
+use std::{env, fs, thread, time, process};
 use std::error::Error;
 use std::io::Read;
 use std::sync::mpsc;
@@ -25,7 +28,14 @@ const PROMPT: &'static str = "Rurtle> ";
 
 fn main() {
     let mut environ = {
-        let screen = graphic::TurtleScreen::new((640, 640), "Rurtle");
+        let screen = graphic::TurtleScreen::new((640, 640), "Rurtle").unwrap_or_else(|err| {
+            println!("Error while creating the screen:");
+            println!("  {}", err);
+            if let Some(cause) = err.cause() {
+                println!("    {}", cause);
+            }
+            process::exit(1);
+        });
         let turtle = turtle::Turtle::new(screen);
         environ::Environment::new(turtle)
     };
