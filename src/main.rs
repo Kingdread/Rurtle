@@ -1,8 +1,5 @@
 #![cfg_attr(feature = "linted", feature(plugin))]
 #![cfg_attr(feature = "linted", plugin(clippy))]
-// We use this to allow different WindowBuilders for TurtleScreen while still
-// retaining the default of a window.
-#![feature(default_type_parameter_fallback)]
 
 extern crate bit_vec;
 #[macro_use]

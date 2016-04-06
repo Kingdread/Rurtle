@@ -19,30 +19,30 @@
 //! # Headless rendering
 //!
 //! If you need to create a headless `TurtleScreen` (e.g. for testing purposes),
-//! it is possible to pass a different type parameter to `TurtleScreen::new`.
-//! The default is `builder::Window`, which creates a window. To get a
-//! window-less render, use `builder::Headless, i.e.`
+//! it is possible to pass a different type parameter to
+//! `TurtleScreen::new_with_builder`. To get a window-less render, use
+//! `builder::Headless, i.e.`
 //!
 //! ```no_run
 //! # use rurtle::graphic::{TurtleScreen,builder};
-//! let screen = TurtleScreen::new::<builder::Headless>((640, 480), "");
+//! let screen = TurtleScreen::new_with_builder::<builder::Headless>((640, 480), "");
 //! ```
+//!
 //! Note that certain attributes (such as the title) might be ignored for
 //! headless windows.
+//!
+//! For convenience, the methods `new` and `new_headless` exist, using
+//! `builder::Window` and `builder::Headless`, respectively.
 //!
 //! # Example
 //!
 //! ```no_run
-//! # #![feature(default_type_parameter_fallback)]
 //! # use rurtle::graphic::{TurtleScreen, color};
-//! # fn main() {
-//! // Note that this needs feature default_type_parameter_fallback
 //! let mut screen = TurtleScreen::new((640, 480), "Rurtle").unwrap();
 //! screen.add_line((0.0, 0.0), (50.0, 50.0), color::BLACK);
 //! screen.turtle_position = (50.0, 50.0);
 //! screen.turtle_orientation = 315.0;
 //! screen.draw_and_update();
-//! # }
 //! ```
 pub mod builder;
 use image::{self, GenericImage};
@@ -155,13 +155,11 @@ impl TurtleScreen {
     /// You can pass different "window builders" as the type parameter which
     /// allows you to switch between normal rendering and headless rendering.
     /// Predefined types are available in the `builder` module, i.e.
-    /// `builder::Window` and `builder::Headless`. Note that using the default
-    /// without specifying it requires
-    /// `#![feature(default_type_parameter_fallback)]`
-    pub fn new<B: builder::GliumFactory=builder::Window>(
-               size: (u32, u32),
-               title: &str)
-               -> Result<TurtleScreen, builder::Err> {
+    /// `builder::Window` and `builder::Headless`.
+    pub fn new_with_builder<B: builder::GliumFactory>(
+                            size: (u32, u32),
+                            title: &str)
+                            -> Result<TurtleScreen, builder::Err> {
         let mut builder = B::new(size.0, size.1).with_title(title.to_owned());
         if cfg!(target_os = "macos") {
             // we need to set the legacy (2.1) GL version in
@@ -201,6 +199,16 @@ impl TurtleScreen {
             turtle_hidden: false,
             background_color: color::WHITE,
         })
+    }
+
+    /// Shortcut to build a `TurtleScreen` with `builder::Window`.
+    pub fn new(size: (u32, u32), title: &str) -> Result<TurtleScreen, builder::Err> {
+        TurtleScreen::new_with_builder::<builder::Window>(size, title)
+    }
+
+    /// Shortcut to build a headless `TurtleScreen` (with `builder::Headless`)
+    pub fn new_headless(size: (u32, u32), title: &str) -> Result<TurtleScreen, builder::Err> {
+        TurtleScreen::new_with_builder::<builder::Headless>(size, title)
     }
 
     /// Add a line to the collection, going from point start to point end
