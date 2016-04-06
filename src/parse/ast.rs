@@ -145,3 +145,55 @@ impl CompOp {
 pub enum AddOp { Add, Sub }
 #[derive(Debug, Copy, Clone)]
 pub enum MulOp { Mul, Div }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::CompOp::*;
+
+    fn eval<T: Ord>(first: T, op: CompOp, second: T) -> bool {
+        op.matches(&first.cmp(&second))
+    }
+
+    #[test]
+    fn test_equal() {
+        assert!(eval(1, Equal, 1));
+        assert!(!eval(1, Equal, 2));
+        assert!(!eval(2, Equal, 1));
+    }
+
+    #[test]
+    fn test_less() {
+        assert!(!eval(1, Less, 1));
+        assert!(eval(1, Less, 2));
+        assert!(!eval(2, Less, 1));
+    }
+
+    #[test]
+    fn test_greater() {
+        assert!(!eval(1, Greater, 1));
+        assert!(!eval(1, Greater, 2));
+        assert!(eval(2, Greater, 1));
+    }
+
+    #[test]
+    fn test_less_or_equal() {
+        assert!(eval(1, LessEqual, 1));
+        assert!(eval(1, LessEqual, 2));
+        assert!(!eval(2, LessEqual, 1));
+    }
+
+    #[test]
+    fn test_greater_or_equal() {
+        assert!(eval(1, GreaterEqual, 1));
+        assert!(!eval(1, GreaterEqual, 2));
+        assert!(eval(2, GreaterEqual, 1));
+    }
+
+    #[test]
+    fn test_not_equal() {
+        assert!(!eval(1, NotEqual, 1));
+        assert!(eval(1, NotEqual, 2));
+        assert!(eval(2, NotEqual, 1));
+    }
+}
