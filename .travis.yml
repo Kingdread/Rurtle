@@ -11,3 +11,7 @@ os:
 matrix:
     allow_failures:
         - rust: nightly
+
+before_install:
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then brew update ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then brew install freetype ; fi
