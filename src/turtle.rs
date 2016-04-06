@@ -11,17 +11,14 @@
 //! # Example
 //!
 //! ```no_run
-//! # #![feature(default_type_parameter_fallback)]
-//! # fn main() {
 //! use rurtle::graphic::TurtleScreen;
 //! use rurtle::turtle::Turtle;
 //! let screen = TurtleScreen::new((640, 480), "Turtle Demo").unwrap();
 //! let mut turtle = Turtle::new(screen);
-//! for _ in (0..4) {
+//! for _ in 0..4 {
 //!     turtle.forward(100.0);
 //!     turtle.right(90.0);
 //! }
-//! # }
 //! ```
 use super::graphic::{TurtleScreen, color};
 
