@@ -16,6 +16,8 @@ pub mod environ;
 pub mod readline;
 pub mod floodfill;
 
+use environ::value::Value;
+
 use std::{env, fs, thread, time, process};
 use std::error::Error;
 use std::io::Read;
@@ -83,8 +85,10 @@ fn main() {
         if !source.is_empty() {
             readline::add_history(&source);
         }
-        if let Err(e) = environ.eval_source(&source) {
-            println!("{}: {}", e.description(), e);
+        match environ.eval_source(&source) {
+            Ok(ref v) if *v != Value::Nothing => println!("{}", v),
+            Err(e) => println!("{}: {}", e.description(), e),
+            _ => (),
         }
         let screen = environ.get_turtle().get_screen();
         screen.draw_and_update();
