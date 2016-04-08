@@ -22,6 +22,7 @@
 //! ```
 use std::rc::Rc;
 use std::cell::{RefCell, RefMut};
+use std::mem;
 use super::graphic::{TurtleScreen, color};
 
 #[derive(Debug)]
@@ -239,5 +240,18 @@ impl Turtle {
             (data.position, data.color)
         };
         self.screen.borrow_mut().floodfill(position, color);
+    }
+}
+
+impl Drop for Turtle {
+    fn drop(&mut self) {
+        // Zeroed memory is fine because TurtleData has no destructor, it just
+        // contains POD (it could even be a C struct).
+        let mut dummy = Rc::new(RefCell::new(unsafe { mem::zeroed() }));
+        mem::swap(&mut self.data, &mut dummy);
+        // dummy is now our real data. When we drop it, the weak references that
+        // the TurtleScreen stores become invalid and will be cleaned up.
+        mem::drop(dummy);
+        self.screen.borrow_mut().cleanup();
     }
 }
