@@ -40,8 +40,6 @@
 //! # use rurtle::graphic::{TurtleScreen, color};
 //! let mut screen = TurtleScreen::new((640, 480), "Rurtle").unwrap();
 //! screen.add_line((0.0, 0.0), (50.0, 50.0), color::BLACK);
-//! screen.turtle_position = (50.0, 50.0);
-//! screen.turtle_orientation = 315.0;
 //! screen.draw_and_update();
 //! ```
 pub mod builder;
@@ -50,7 +48,11 @@ use glium::{self, Surface};
 use glium_text;
 use na;
 use std::io;
+use std::rc::Weak;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use super::floodfill as ff;
+use super::turtle::TurtleData;
 
 /// A Point to pass around to shaders.
 #[derive(Copy, Clone)]
@@ -136,15 +138,8 @@ pub struct TurtleScreen {
     patch_program: glium::Program,
     text_system: glium_text::TextSystem,
     font: glium_text::FontTexture,
-    /// The position of the turtle on the canvas
-    pub turtle_position: (f32, f32),
-    /// The color of the turtle
-    pub turtle_color: color::Color,
-    /// The orientation of the turtle in degrees where 0° is north and positive
-    /// degrees count counter-clockwise
-    pub turtle_orientation: f32,
-    /// If this is set to true, the turtle itself won't be drawn
-    pub turtle_hidden: bool,
+    turtles: Vec<Weak<RefCell<TurtleData>>>,
+    _counter: usize,
     /// Background color of the turtle screen
     pub background_color: color::Color,
 }
@@ -193,10 +188,8 @@ impl TurtleScreen {
             patch_program: patch_program,
             text_system: text_system,
             font: font,
-            turtle_position: (0.0, 0.0),
-            turtle_color: color::BLACK,
-            turtle_orientation: 0.0,
-            turtle_hidden: false,
+            turtles: Vec::new(),
+            _counter: 0usize,
             background_color: color::WHITE,
         })
     }
@@ -223,12 +216,22 @@ impl TurtleScreen {
 
     /// Floodfill the image at the given point with the given color
     pub fn floodfill(&mut self, point: (f32, f32), color: color::Color) {
-        // we floodfill with the turtle not shown
-        let original_state = self.turtle_hidden;
-        self.turtle_hidden = true;
+        // we floodfill with the turtles not shown
+        let mut original_states: HashMap<usize, bool> = HashMap::new();
+        for turtle in &self.turtles {
+            if let Some(turtle) = turtle.upgrade() {
+                original_states.insert(turtle.borrow().id, turtle.borrow().hidden);
+                turtle.borrow_mut().hidden = true;
+            }
+        }
         self.draw_and_update();
         let image = self.screenshot();
-        self.turtle_hidden = original_state;
+        for turtle in &self.turtles {
+            if let Some(turtle) = turtle.upgrade() {
+                let id = turtle.borrow().id;
+                turtle.borrow_mut().hidden = *original_states.get(&id).unwrap();
+            }
+        }
         self.draw_and_update();
         // point is given in turtle coordinates with (0,0) being in the middle, we
         // need to translate it to picture coordinates
@@ -279,8 +282,12 @@ impl TurtleScreen {
                 Shape::Fill(ref f) => self.draw_fill(&mut frame, f, matrix),
             }
         }
-        if !self.turtle_hidden {
-            self.draw_turtle(&mut frame, matrix);
+        for turtle in &self.turtles {
+            if let Some(turtle) = turtle.upgrade() {
+                if !turtle.borrow().hidden {
+                    self.draw_turtle(&mut frame, matrix, &*turtle.borrow());
+                }
+            }
         }
         frame.finish().unwrap();
     }
@@ -354,7 +361,7 @@ impl TurtleScreen {
                          text_color);
     }
 
-    fn draw_turtle(&self, frame: &mut glium::Frame, matrix: ScaleMatrix) {
+    fn draw_turtle(&self, frame: &mut glium::Frame, matrix: ScaleMatrix, turtle: &TurtleData) {
         // WIDTH and HEIGHT specifiy the size in which Ferris should be drawn.
         // The aspect ratio should be kept, the original Ferris image has a
         // ratio of w:h 3:2
@@ -363,8 +370,8 @@ impl TurtleScreen {
         const DX: f32 = WIDTH / 2.;
         const DY: f32 = HEIGHT / 2.;
 
-        let (tx, ty) = self.turtle_position;
-        let orientation_rad = ::std::f32::consts::PI * self.turtle_orientation / 180.0;
+        let (tx, ty) = turtle.position;
+        let orientation_rad = ::std::f32::consts::PI * turtle.orientation / 180.0;
         let sin_d = orientation_rad.sin();
         let cos_d = orientation_rad.cos();
 
@@ -420,6 +427,27 @@ impl TurtleScreen {
     /// Return the current screen as an image
     pub fn screenshot(&self) -> image::DynamicImage {
         raw_image_to_image(self.window.read_front_buffer())
+    }
+
+    /// Add a `Turtle` to the screen.
+    ///
+    /// This function is used internally by `Turtle`, you should not need this.
+    pub fn add_turtle(&mut self, turtle: Weak<RefCell<TurtleData>>) {
+        self.turtles.push(turtle);
+        self._counter += 1;
+    }
+
+    /// Return the next numeric turtle id.
+    pub fn counter(&self) -> usize {
+        self._counter
+    }
+
+    /// Remove all references to dead turtles.
+    ///
+    /// Please remember to report the murderer to the police - killing innocent
+    /// turtles is a global problem and no trivial offense.
+    pub fn cleanup(&mut self) {
+        self.turtles.retain(|trt| trt.upgrade().is_some());
     }
 }
 

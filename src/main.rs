@@ -90,7 +90,7 @@ fn main() {
             Err(e) => println!("{}: {}", e.description(), e),
             _ => (),
         }
-        let screen = environ.get_turtle().get_screen();
+        let mut screen = environ.get_turtle().get_screen();
         screen.draw_and_update();
         screen.handle_events();
         if screen.is_closed() {
