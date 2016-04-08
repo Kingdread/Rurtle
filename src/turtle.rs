@@ -1,12 +1,14 @@
-//! This module contains the actual implementation of the turtle concept.
+//! A `Turtle` is a Rust handle to a virtual turtle on screen.
 //!
 //! The `Turtle` starts in the middle of the screen and can be given commands
 //! such as `forward(100)` or `left(90)`. While moving across the screen, the
 //! turtle draws its path on the canvas. Based on this primitive movements, you
 //! can build more complex commands and draw nice patterns.
 //!
-//! A `Turtle` always has a `TurtleScreen` owned. This `TurtleScreen` must be
-//! given to `Turtle::new()`
+//! Each `Turtle` has a reference to an underlying `TurtleScreen`, which
+//! provides the canvas (i.e. the window) on which the turtle will draw. A
+//! `TurtleScreen` can be shared by multiple turtles, in which case the screen
+//! will persist as long as at least one turtle remains on it.
 //!
 //! # Example
 //!
@@ -18,6 +20,55 @@
 //! for _ in 0..4 {
 //!     turtle.forward(100.0);
 //!     turtle.right(90.0);
+//! }
+//! ```
+//!
+//! # Implementation
+//!
+//! The `Turtle` does not contain much data itself. In addition to the methods
+//! defined here, it contains two pointers, one to the underlying `TurtleScreen`
+//! and one to a `TurtleData` struct, which contains the actual attributes (such
+//! as position, color, ...).
+//!
+//! The `TurtleScreen` in turn also contains a reference to the same
+//! `TurtleData` struct, which it uses to update the image.
+//!
+//! ```text
+//! Turtle
+//!        `-- methods update data in   --v
+//!                                       TurtleData
+//!        ,-- uses the data to draw    --^
+//! TurtleScreen
+//! ```
+//!
+//! Creating a `Turtle` via the `Turtle::new` or `Turtle::procreate` methods
+//! automatically registers the turtle with the screen. Dropping a `Turtle` will
+//! unregister the instance.
+//!
+//! # Multiple `Turtle`s *or* `TurtleScreen` sharing
+//!
+//! It is possible to have multiple turtles drawing on the same canvas. To
+//! achieve that, you have to create a "root" turtle first with `Turtle::new`
+//! and then *clone* that turtle with `Turtle::procreate`. Note that the name
+//! `clone` has been avoided to prevent confusion with the `Clone` trait.
+//!
+//! After procreation, the root turtle is no different than the other turtles.
+//! Turtles can safely be dropped without affecting the other turtles. Each
+//! drawing action or attribute setting affects the current turtle only
+//! (except for the background color), and each turtle will be drawn separately
+//! on screen. Dropping a turtle will **NOT** remove its drawings.
+//!
+//! ```no_run
+//! use rurtle::graphic::TurtleScreen;
+//! use rurtle::turtle::Turtle;
+//! let screen = TurtleScreen::new((640, 480), "Multi Turtle").unwrap();
+//! let mut turtle = Turtle::new(screen);
+//! let mut turtles: Vec<Turtle> = Vec::new();
+//! for num in 0..4 {
+//!     let mut child = turtle.procreate();
+//!     child.right(num as f32 * 90.0);
+//!     child.forward(100.0);
+//!     turtles.push(child); // avoid dropping it
 //! }
 //! ```
 use std::rc::Rc;
