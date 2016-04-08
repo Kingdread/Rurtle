@@ -37,7 +37,7 @@ pub type ResultType = Result<Value, RuntimeError>;
 pub type FuncType = fn(&mut Environment, &[Value]) -> ResultType;
 
 /// A function available to Rurtle programs can either be a function defined in
-/// a Rurtle program or a native function of FuncType
+/// a Rurtle program or a native function of `FuncType`
 pub enum Function {
     /// This variant holds a function that was defined in Rurtle via the LEARN
     /// statement. The node passed has to be the `LearnStatement` node.
@@ -134,9 +134,8 @@ impl Environment {
     fn find_function(&self, name: &str) -> Option<&Function> {
         for stack_frame in self.stack.iter().rev() {
             for mini_frame in stack_frame.functions.iter().rev() {
-                match mini_frame.get(name) {
-                    Some(f) => return Some(f),
-                    None => (),
+                if let Some(f) = mini_frame.get(name) {
+                    return Some(f);
                 }
             }
         }
@@ -412,9 +411,8 @@ impl Environment {
     pub fn get_variable(&mut self, name: &str) -> Option<Value> {
         {
             let local_frame = self.current_frame();
-            match local_frame.locals.get(name) {
-                Some(value) => return Some(value.clone()),
-                None => (),
+            if let Some(value) = local_frame.locals.get(name) {
+                return Some(value.clone());
             }
         }
         let global_frame = self.global_frame();

@@ -9,7 +9,7 @@ use image::{self, GenericImage};
 use bit_vec::BitVec;
 
 /// Internal structure to simulate a 2d grid of true/false values
-/// Faster than using a HashSet with (x, y) keys.
+/// Faster than using a `HashSet` with (x, y) keys.
 /// All elements are set to false initially.
 struct BitMap2d {
     storage: BitVec,
@@ -88,7 +88,7 @@ pub fn floodfill(img: &image::DynamicImage, start: (u32, u32), color: (u8, u8, u
     (min_x, min_y, image)
 }
 
-/// Takes a list of (x, y) coordinates and returns (min_x, max_x, min_y, max_y)
+/// Takes a list of `(x, y)` coordinates and returns `(min_x, max_x, min_y, max_y)`
 fn find_min_max(points: &[(u32, u32)]) -> (u32, u32, u32, u32) {
     let mut min_x = ::std::u32::MAX;
     let mut max_x = ::std::u32::MIN;

@@ -123,6 +123,12 @@ impl Scope {
     }
 }
 
+impl Default for Scope {
+    fn default() -> Scope {
+        Scope::new()
+    }
+}
+
 /// Always returns an `Err` value but attaches the required meta information
 /// (such as line number)
 macro_rules! parse_error {
@@ -190,9 +196,8 @@ impl Parser {
     fn find_function_arg_count(&self, name: &str) -> Option<i32> {
         for scope in self.scope_stack.iter().rev() {
             let function_map = &scope.functions;
-            match function_map.get(name) {
-                Some(i) => return Some(*i),
-                None => {},
+            if let Some(i) = function_map.get(name) {
+                return Some(*i);
             }
         }
         None

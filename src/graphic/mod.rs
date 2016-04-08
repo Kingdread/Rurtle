@@ -69,9 +69,9 @@ struct FerrisPoint {
 }
 implement_vertex!(FerrisPoint, coords, tex_coords);
 
-/// Source for the vertex shader in the OpenGL shader language
+/// Source for the vertex shader in GLSL
 const VERTEX_SHADER: &'static str = include_str!("shaders/vertex.glsl");
-/// Source for the fragment shader in the OpenGL shader language
+/// Source for the fragment shader in GLSL
 const FRAGMENT_SHADER: &'static str = include_str!("shaders/fragment.glsl");
 /// Ferris image bytes
 const FERRIS_BYTES: &'static [u8] = include_bytes!("ferris.png");
@@ -132,14 +132,14 @@ pub struct TurtleScreen {
     window: builder::Facade,
     program: glium::Program,
     shapes: Vec<Shape>,
-    _is_closed: bool,
+    is_closed_flag: bool,
     ferris: glium::texture::Texture2d,
     ferris_program: glium::Program,
     patch_program: glium::Program,
     text_system: glium_text::TextSystem,
     font: glium_text::FontTexture,
     turtles: Vec<Weak<RefCell<TurtleData>>>,
-    _counter: usize,
+    turtle_counter: usize,
     /// Background color of the turtle screen
     pub background_color: color::Color,
 }
@@ -182,14 +182,14 @@ impl TurtleScreen {
             window: window,
             program: program,
             shapes: Vec::new(),
-            _is_closed: false,
+            is_closed_flag: false,
             ferris: ferris_texture,
             ferris_program: ferris_program,
             patch_program: patch_program,
             text_system: text_system,
             font: font,
             turtles: Vec::new(),
-            _counter: 0usize,
+            turtle_counter: 0usize,
             background_color: color::WHITE,
         })
     }
@@ -242,8 +242,8 @@ impl TurtleScreen {
                               // y-axis upwars
                               (height as f32 / 2. - point.1) as u32);
         let translated_color = {
-            let (r, g, b, a) = color;
             const MAX: f32 = ::std::u8::MAX as f32;
+            let (r, g, b, a) = color;
             ((MAX * r) as u8, (MAX * g) as u8, (MAX * b) as u8, (MAX * a) as u8)
         };
         let (px, py, patch) = ff::floodfill(&image, (adj_x, adj_y), translated_color);
@@ -298,7 +298,7 @@ impl TurtleScreen {
                                texture.get_height().unwrap() as f32);
         let vertex_buffer = glium::VertexBuffer::new(
             &self.window,
-            &vec![
+            &[
                 // Bottom left corner
                 FerrisPoint { coords: [x, y - height], tex_coords: [0., 0.] },
                 // Bottom right corner
@@ -307,7 +307,8 @@ impl TurtleScreen {
                 FerrisPoint { coords: [x + width, y], tex_coords: [1., 1.] },
                 // Top left corner
                 FerrisPoint { coords: [x, y], tex_coords: [0., 1.] },
-        ]);
+            ]
+        );
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
         let uniforms = uniform! {
             matrix: matrix,
@@ -384,7 +385,7 @@ impl TurtleScreen {
 
         let vertex_buffer = glium::VertexBuffer::new(
             &self.window,
-            &vec![
+            &[
                 // Bottom left corner
                 FerrisPoint { coords: [tx - DX, ty - DY], tex_coords: [0., 0.] },
                 // Bottom right corner
@@ -393,7 +394,8 @@ impl TurtleScreen {
                 FerrisPoint { coords: [tx + DX, ty + DY], tex_coords: [1., 1.] },
                 // Top left corner
                 FerrisPoint { coords: [tx - DX, ty + DY], tex_coords: [0., 1.] },
-        ]);
+            ]
+        );
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
         let uniforms = uniform! {
             matrix: matrix,
@@ -411,7 +413,7 @@ impl TurtleScreen {
         use glium::glutin::Event;
         for event in self.window.poll_events() {
             if let Event::Closed =  event {
-                self._is_closed = true;
+                self.is_closed_flag = true;
                 self.window.get_window().unwrap().hide();
             }
         }
@@ -421,7 +423,7 @@ impl TurtleScreen {
     /// detected if the window's events have been handled. Thus it is advised to
     /// use `handle_events()` before checking `is_closed()`.
     pub fn is_closed(&self) -> bool {
-        self._is_closed
+        self.is_closed_flag
     }
 
     /// Return the current screen as an image
@@ -434,12 +436,12 @@ impl TurtleScreen {
     /// This function is used internally by `Turtle`, you should not need this.
     pub fn add_turtle(&mut self, turtle: Weak<RefCell<TurtleData>>) {
         self.turtles.push(turtle);
-        self._counter += 1;
+        self.turtle_counter += 1;
     }
 
     /// Return the next numeric turtle id.
     pub fn counter(&self) -> usize {
-        self._counter
+        self.turtle_counter
     }
 
     /// Remove all references to dead turtles.
@@ -451,7 +453,7 @@ impl TurtleScreen {
     }
 }
 
-/// Convert an image::DynamicImage to a glium::texture::Texture2d
+/// Convert an `image::DynamicImage` to a `glium::texture::Texture2d`
 fn image_to_texture<F: glium::backend::Facade>(display: &F, im: image::DynamicImage)
     -> Result<glium::texture::Texture2d, glium::texture::TextureCreationError>
 {
@@ -461,7 +463,7 @@ fn image_to_texture<F: glium::backend::Facade>(display: &F, im: image::DynamicIm
     glium::texture::Texture2d::new(display, glium_image)
 }
 
-/// Convert a glium::texture::RawImage2d to an image::DynamicImage
+/// Convert a `glium::texture::RawImage2d` to an `image::DynamicImage`
 fn raw_image_to_image(tex: glium::texture::RawImage2d<u8>) -> image::DynamicImage {
     assert_eq!(tex.format, glium::texture::ClientFormat::U8U8U8U8);
     let channels = tex.format.get_num_components() as usize;

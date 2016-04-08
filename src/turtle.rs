@@ -78,8 +78,8 @@ use super::graphic::{TurtleScreen, color};
 
 #[derive(Debug)]
 enum PenState {
-    PenUp,
-    PenDown,
+    Up,
+    Down,
 }
 
 /// The `Turtle` struct is the thing that actually provides the methods to walk
@@ -106,7 +106,7 @@ pub struct TurtleData {
 }
 
 impl Turtle {
-    /// Construct a new Turtle. Moves the TurtleScreen.
+    /// Construct a new `Turtle`. Moves the `TurtleScreen`.
     pub fn new(mut screen: TurtleScreen) -> Turtle {
         let data = Rc::new(RefCell::new(TurtleData {
             position: (0.0, 0.0),
@@ -119,7 +119,7 @@ impl Turtle {
         Turtle {
             screen: Rc::new(RefCell::new(screen)),
             data: data,
-            pen: PenState::PenDown,
+            pen: PenState::Down,
         }
     }
 
@@ -140,7 +140,7 @@ impl Turtle {
         Turtle {
             screen: self.screen.clone(),
             data: data,
-            pen: PenState::PenDown,
+            pen: PenState::Down,
         }
     }
 
@@ -149,7 +149,7 @@ impl Turtle {
     /// implement everything else
     fn goto(&mut self, x: f32, y: f32) {
         let start_position = self.data.borrow().position;
-        if let PenState::PenDown = self.pen {
+        if let PenState::Down = self.pen {
             self.screen.borrow_mut().add_line(start_position, (x, y), self.data.borrow().color);
         }
         self.data.borrow_mut().position = (x, y);
@@ -157,7 +157,7 @@ impl Turtle {
     }
 
     /// Return a reference to the underlaying `TurtleScreen` object
-    pub fn get_screen<'a>(&'a mut self) -> RefMut<'a, TurtleScreen> {
+    pub fn get_screen(&mut self) -> RefMut<TurtleScreen> {
         self.screen.borrow_mut()
     }
 
@@ -210,12 +210,12 @@ impl Turtle {
 
     /// "Lifts" the pen so that no lines are drawn anymore
     pub fn pen_up(&mut self) {
-        self.pen = PenState::PenUp;
+        self.pen = PenState::Up;
     }
 
     /// Sinks the pen again so that lines are drawn
     pub fn pen_down(&mut self) {
-        self.pen = PenState::PenDown;
+        self.pen = PenState::Down;
     }
 
     /// Set the turtle's color. New lines will be drawn using that color but

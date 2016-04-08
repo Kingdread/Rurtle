@@ -313,6 +313,12 @@ impl Tokenizer {
     }
 }
 
+impl Default for Tokenizer {
+    fn default() -> Tokenizer {
+        Tokenizer::new()
+    }
+}
+
 /// Split the input String into single tokens. Strings in the input source are
 /// returned as a single token.
 pub fn tokenize(input: &str) -> Result<VecDeque<MetaToken>, LexError> {

@@ -79,7 +79,7 @@ macro_rules! map {
     }
 }
 
-/// Return a HashMap of the built-in functions
+/// Return a `HashMap` of the built-in functions
 pub fn default_functions() -> HashMap<String, Function> {
     map!{
         "PRINT" => Native(1, print),
