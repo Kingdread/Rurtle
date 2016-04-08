@@ -1,22 +1,9 @@
 #![cfg_attr(feature = "linted", feature(plugin))]
 #![cfg_attr(feature = "linted", plugin(clippy))]
+extern crate rurtle;
 
-extern crate bit_vec;
-#[macro_use]
-extern crate glium;
-extern crate glium_text;
-extern crate image;
-extern crate nalgebra as na;
-
-pub mod graphic;
-pub mod turtle;
-pub mod lex;
-pub mod parse;
-pub mod environ;
-pub mod readline;
-pub mod floodfill;
-
-use environ::value::Value;
+use rurtle::{graphic, turtle, environ, readline};
+use rurtle::environ::value::Value;
 
 use std::{env, fs, thread, time, process};
 use std::error::Error;
