@@ -65,7 +65,7 @@ impl<'a> GliumFactory for WindowBuilder<'static> {
         let window = try!(self.build_glium());
         Ok(WindowRenderer {
             window: window,
-            frame: RefCell::new(None),
+            frame: None,
         })
     }
 }
@@ -91,7 +91,7 @@ impl<'a> GliumFactory for HeadlessRendererBuilder<'a> {
         Ok(HeadlessRenderer {
             backend: backend,
             dimensions: dimensions,
-            buffer: RefCell::new(None),
+            buffer: None,
         })
     }
 }
@@ -106,10 +106,10 @@ impl<'a> GliumFactory for HeadlessRendererBuilder<'a> {
 /// about that distinction.
 pub trait Renderer: Deref<Target=Facade> {
     /// Get a reference to the buffer that should be used.
-    fn draw(&self) -> MySurface;
+    fn draw(&mut self) -> MySurface;
 
     /// Finish the frame, possibly swap the buffers.
-    fn finish(&self);
+    fn finish(&mut self);
 
     /// Read the image data, i.e. take a screenshot.
     fn read(&self) -> RawImage2d<u8>;
@@ -123,7 +123,7 @@ impl glium::backend::Facade for Box<Renderer<Target=Facade>> {
 
 pub struct WindowRenderer {
     window: Facade,
-    frame: RefCell<Option<Rc<RefCell<glium::Frame>>>>,
+    frame: Option<Rc<RefCell<glium::Frame>>>,
 }
 
 impl Deref for WindowRenderer {
@@ -135,14 +135,15 @@ impl Deref for WindowRenderer {
 }
 
 impl Renderer for WindowRenderer {
-    fn draw(&self) -> MySurface {
-        *self.frame.borrow_mut() = Some(Rc::new(RefCell::new(self.window.draw())));
-        MySurface::Frame(self.frame.borrow().as_ref().unwrap().clone())
+    fn draw(&mut self) -> MySurface {
+        let frame = Rc::new(RefCell::new(self.window.draw()));
+        self.frame = Some(frame.clone());
+        MySurface::Frame(frame)
     }
 
-    fn finish(&self) {
+    fn finish(&mut self) {
         let mut frame = None;
-        mem::swap(&mut frame, &mut *self.frame.borrow_mut());
+        mem::swap(&mut frame, &mut self.frame);
         let frame = Rc::try_unwrap(frame.expect("No frame to finish, call draw() first!"));
         frame
             .ok()
@@ -160,7 +161,7 @@ impl Renderer for WindowRenderer {
 pub struct HeadlessRenderer {
     backend: Facade,
     dimensions: (u32, u32),
-    buffer: RefCell<Option<Rc<Texture2d>>>,
+    buffer: Option<Rc<Texture2d>>,
 }
 
 impl Deref for HeadlessRenderer {
@@ -172,17 +173,17 @@ impl Deref for HeadlessRenderer {
 }
 
 impl Renderer for HeadlessRenderer {
-    fn draw(&self) -> MySurface {
+    fn draw(&mut self) -> MySurface {
         let (width, height) = self.dimensions;
         let buffer = Rc::new(Texture2d::empty(&self.backend, width, height).unwrap());
-        *self.buffer.borrow_mut() = Some(buffer.clone());
+        self.buffer = Some(buffer.clone());
         MySurface::Buffer(buffer)
     }
 
-    fn finish(&self) {}
+    fn finish(&mut self) {}
 
     fn read(&self) -> RawImage2d<u8> {
-        self.buffer.borrow().as_ref().expect("No data yet available").read()
+        self.buffer.as_ref().expect("No data yet available").read()
     }
 }
 
