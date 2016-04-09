@@ -47,7 +47,7 @@ use image::{self, GenericImage};
 use glium::{self, Surface};
 use glium_text;
 use na;
-use std::io;
+use std::{io, mem};
 use std::rc::Weak;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -129,7 +129,7 @@ enum Shape {
 /// A `TurtleScreen` is a window that houses a turtle. It provides some graphic
 /// methods, but you should use a `Turtle` instead.
 pub struct TurtleScreen {
-    window: builder::Facade,
+    window: Box<builder::Renderer<Target=builder::Facade>>,
     program: glium::Program,
     shapes: Vec<Shape>,
     is_closed_flag: bool,
@@ -161,7 +161,9 @@ impl TurtleScreen {
             // mac osx to work, otherwise our shaders fail.
             builder = builder.with_gl(glium::glutin::GlRequest::Specific(glium::glutin::Api::OpenGl, (2, 1)))
         }
-        let window = try!(builder::GliumFactory::build_glium(builder));
+        // Coerce to trait object
+        let window: Box<builder::Renderer<Target=builder::Facade>>
+            = Box::new(try!(builder.build_renderer()));
         let program_builder = glium::Program::from_source(
             &window, VERTEX_SHADER, FRAGMENT_SHADER, None);
         let program = match program_builder {
@@ -252,7 +254,7 @@ impl TurtleScreen {
                                   height as f32 / 2. - py as f32);
         self.shapes.push(Shape::Fill(
             Fill(trans_x, trans_y,
-                 image_to_texture(&self.window, patch).expect("Conversion to texture failed"))));
+                 image_to_texture(&**self.window, patch).expect("Conversion to texture failed"))));
     }
 
     /// Remove all drawn lines. Note that this does not change the turtle's
@@ -262,7 +264,7 @@ impl TurtleScreen {
     }
 
     /// Draw everything and update the screen
-    pub fn draw_and_update(&self) {
+    pub fn draw_and_update(&mut self) {
         let mut frame = self.window.draw();
         {
             let (br, bg, bb, ba) = self.background_color;
@@ -289,10 +291,12 @@ impl TurtleScreen {
                 }
             }
         }
-        frame.finish().unwrap();
+        // Make sure there are no lingering references to the underlying frame
+        mem::drop(frame);
+        self.window.finish();
     }
 
-    fn draw_fill(&self, frame: &mut glium::Frame, fill: &Fill, matrix: ScaleMatrix) {
+    fn draw_fill(&self, frame: &mut builder::MySurface, fill: &Fill, matrix: ScaleMatrix) {
         let Fill(x, y, ref texture) = *fill;
         let (width, height) = (texture.get_width() as f32,
                                texture.get_height().unwrap() as f32);
@@ -318,7 +322,7 @@ impl TurtleScreen {
                    &Default::default()).unwrap();
     }
 
-    fn draw_line(&self, frame: &mut glium::Frame, line: &Line, matrix: ScaleMatrix) {
+    fn draw_line(&self, frame: &mut builder::MySurface, line: &Line, matrix: ScaleMatrix) {
         use std::default::Default;
         use self::color::to_array;
         let mut points: Vec<Point> = Vec::new();
@@ -332,7 +336,7 @@ impl TurtleScreen {
             .unwrap();
     }
 
-    fn draw_text(&self, frame: &mut glium::Frame, text: &Text) {
+    fn draw_text(&self, frame: &mut builder::MySurface, text: &Text) {
         const FONT_SIZE: f32 = 12.;
         let Text(pos_x, pos_y, angle_deg, text_color, ref data) = *text;
         // Convert to radians
@@ -362,7 +366,7 @@ impl TurtleScreen {
                          text_color);
     }
 
-    fn draw_turtle(&self, frame: &mut glium::Frame, matrix: ScaleMatrix, turtle: &TurtleData) {
+    fn draw_turtle(&self, frame: &mut builder::MySurface, matrix: ScaleMatrix, turtle: &TurtleData) {
         // WIDTH and HEIGHT specifiy the size in which Ferris should be drawn.
         // The aspect ratio should be kept, the original Ferris image has a
         // ratio of w:h 3:2
@@ -428,7 +432,7 @@ impl TurtleScreen {
 
     /// Return the current screen as an image
     pub fn screenshot(&self) -> image::DynamicImage {
-        raw_image_to_image(self.window.read_front_buffer())
+        raw_image_to_image(self.window.read())
     }
 
     /// Add a `Turtle` to the screen.
