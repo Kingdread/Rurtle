@@ -73,6 +73,7 @@
 //! ```
 use std::rc::Rc;
 use std::cell::{RefCell, RefMut};
+use std::default::Default;
 use std::mem;
 use super::graphic::{TurtleScreen, color};
 
@@ -105,15 +106,24 @@ pub struct TurtleData {
     pub id: usize,
 }
 
-impl Turtle {
-    /// Construct a new `Turtle`. Moves the `TurtleScreen`.
-    pub fn new(mut screen: TurtleScreen) -> Turtle {
-        let data = Rc::new(RefCell::new(TurtleData {
+impl Default for TurtleData {
+    fn default() -> TurtleData {
+        TurtleData {
             position: (0.0, 0.0),
             color: color::BLACK,
             orientation: 0.0,
             hidden: false,
+            id: 0,
+        }
+    }
+}
+
+impl Turtle {
+    /// Construct a new `Turtle`. Moves the `TurtleScreen`.
+    pub fn new(mut screen: TurtleScreen) -> Turtle {
+        let data = Rc::new(RefCell::new(TurtleData {
             id: screen.counter(),
+            .. Default::default()
         }));
         screen.add_turtle(Rc::downgrade(&data));
         Turtle {
@@ -130,11 +140,8 @@ impl Turtle {
     /// the only way to share screens and clone turtles.
     pub fn procreate(&self) -> Turtle {
         let data = Rc::new(RefCell::new(TurtleData { 
-            position: (0.0, 0.0),
-            color: color::BLACK,
-            orientation: 0.0,
-            hidden: false,
             id: self.screen.borrow().counter(),
+            .. Default::default()
         }));
         self.screen.borrow_mut().add_turtle(Rc::downgrade(&data));
         Turtle {
