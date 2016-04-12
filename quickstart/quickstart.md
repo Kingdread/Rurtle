@@ -435,6 +435,45 @@ Number: 3
 3
 ```
 
+Multiple turtles
+================
+
+Rurtle supports multiple turtles. Each turtle is referenced via its name, the
+default turtle is called "default". The default turtle always exists from the
+start of the program and it can't be deleted.
+
+Rurtle has the concept of the "current turtle", that is the turtle which all
+operations are acting upon. The current turtle defaults to "default", and it can
+be changed with the `SELECT` function (example below).
+
+A turtle can be created with the `PROCREATE` function, which takes a name as the
+parameter. The name has to be unique, otherwise procreation will fail.
+
+A turtle (except for the default turtle) can be deleted with the `DELETE`
+function, which also takes a turtle name as parameter. Deleting a turtle will
+not delete its drawings.
+
+Example
+-------
+
+```text
+procreate "arthur"
+procreate "dent"
+select "arthur"
+forward 100
+select "dent"
+right 90
+forward 100
+delete "arthur"
+delete "dent"
+```
+
+This example produces a 90-degree angle with one line going up and one going to
+the right side. There is one turtle still visible on the screen, which is the
+default turtle. It sits in the middle because it hasn't moved, the lines have
+been drawn by two different turtles, which have been deleted. If you leave out
+the last two commands, those turtles will still be visible on screen.
+
 Language reference
 ==================
 
@@ -516,6 +555,12 @@ careful!
 *prompt [text]*: ask the user for input, displaying the given [text]
 
 *throw [error]*: throw a runtime error with the given text as message
+
+*procreate [name]*: create a new turtle with the given name
+
+*select [name]*: select the given turtle for future operations
+
+*delete [name]*: delete the turtle with the given name
 
 List functions
 --------------
