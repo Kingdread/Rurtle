@@ -89,20 +89,58 @@ macro_rules! framed {
 
 pub struct Environment {
     stack: Vec<stack::Frame>,
-    turtle: turtle::Turtle,
+    turtles: HashMap<String, turtle::Turtle>,
+    current_turtle: String,
 }
 
 impl Environment {
     /// Construct a new `Environment` with default values
     pub fn new(turtle: turtle::Turtle) -> Environment {
+        let mut map = HashMap::new();
+        map.insert("default".into(), turtle);
         Environment {
             stack: stack::new_stack(),
-            turtle: turtle,
+            turtles: map,
+            current_turtle: "default".into(),
         }
     }
 
+    pub fn default_turtle(&mut self) -> &mut turtle::Turtle {
+        self.turtles.get_mut("default").unwrap()
+    }
+
     pub fn get_turtle(&mut self) -> &mut turtle::Turtle {
-        &mut self.turtle
+        self.turtles.get_mut(&self.current_turtle).unwrap()
+    }
+
+    pub fn add_turtle(&mut self, name: String) -> bool {
+        if self.turtles.contains_key(&name) {
+            return false;
+        }
+        let new_turtle = self.default_turtle().procreate();
+        self.turtles.insert(name, new_turtle);
+        true
+    }
+
+    pub fn select_turtle(&mut self, name: &str) -> bool {
+        if self.turtles.contains_key(name) {
+            self.current_turtle = name.into();
+            return true;
+        }
+        false
+    }
+
+    pub fn delete_turtle(&mut self, name: &str) -> bool {
+        if name == "default" {
+            return false;
+        }
+        if self.turtles.remove(name).is_none() {
+            return false;
+        }
+        if name == self.current_turtle {
+            self.current_turtle = "default".into();
+        }
+        true
     }
 
     /// Return a map mapping the function name to the argument count. Useful for

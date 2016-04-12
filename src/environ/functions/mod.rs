@@ -100,6 +100,11 @@ pub fn default_functions() -> HashMap<String, Function> {
         "SHOW" => Native(0, turtle::show),
         "WRITE" => Native(1, turtle::write),
         "FLOOD" => Native(0, turtle::flood),
+        // Multiturtle functions
+        "PROCREATE" => Native(1, turtle::procreate),
+        "SELECT" => Native(1, turtle::select),
+        "DELETE" => Native(1, turtle::delete),
+        "KILL" => Native(1, turtle::delete),
 
         // Environment functions to set variables
         "MAKE" => Native(2, env::make),
