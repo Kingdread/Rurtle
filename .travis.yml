@@ -13,5 +13,13 @@ matrix:
         - rust: nightly
 
 before_install:
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then brew tap homebrew/versions ; fi
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then brew update ; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then brew install freetype ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then brew install freetype glfw3 glew ; fi
+
+addons:
+    apt:
+        packages:
+            - freeglut3-dev
+            - libxxf86vm-dev
+            - libosmesa6-dev
