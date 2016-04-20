@@ -1,6 +1,7 @@
 #![cfg_attr(feature = "linted", feature(plugin))]
 #![cfg_attr(feature = "linted", plugin(clippy))]
 extern crate rurtle;
+extern crate image;
 
 use rurtle::{graphic, turtle, environ, readline};
 use rurtle::environ::value::Value;
@@ -13,8 +14,24 @@ use std::sync::mpsc;
 const PROMPT: &'static str = "Rurtle> ";
 
 fn main() {
+    let args = env::args().skip(1);
+    let mut debug_output: Option<String> = None;
+    let args: Vec<_> = args.filter(
+        |arg| if arg.starts_with("--test=") {
+            debug_output = Some(arg[7..].into());
+            false
+        } else {
+            true
+        }
+    ).collect();
     let mut environ = {
-        let screen = graphic::TurtleScreen::new((640, 640), "Rurtle").unwrap_or_else(|err| {
+        let screen = if debug_output.is_none() {
+            graphic::TurtleScreen::new((640, 640), "Rurtle")
+        } else {
+            // Screen to generate the test data for integration tests
+            graphic::TurtleScreen::new_headless((800, 400), "Rurtle")
+        };
+        let screen = screen.unwrap_or_else(|err| {
             println!("Error while creating the screen:");
             println!("  {}", err);
             if let Some(cause) = err.cause() {
@@ -25,7 +42,7 @@ fn main() {
         let turtle = turtle::Turtle::new(screen);
         environ::Environment::new(turtle)
     };
-    for filename in env::args().skip(1) {
+    for filename in &args {
         let mut file = fs::File::open(&filename).unwrap();
         let mut source = String::new();
         file.read_to_string(&mut source).unwrap();
@@ -35,6 +52,19 @@ fn main() {
             return
         }
     };
+    if let Some(filename) = debug_output {
+        environ.get_turtle().get_screen().draw_and_update();
+        let screenshot = environ.get_turtle().get_screen().screenshot();
+        let test_file = fs::File::open(&filename);
+        if test_file.is_ok() {
+            println!("{} already exists!", filename);
+            process::exit(1);
+        }
+        let mut file = fs::File::create(&filename).unwrap();
+        screenshot.save(&mut file, image::PNG).unwrap();
+        println!("Saved to {}", filename);
+        return
+    }
     let (tx, rx) = mpsc::channel();
     // We use the hermes channel to make the "read thread" wait before printing
     // the next prompt and to signal it when the window closed.
