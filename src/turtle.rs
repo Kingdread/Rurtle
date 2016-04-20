@@ -163,7 +163,15 @@ impl Turtle {
         self.screen.borrow_mut().draw_and_update();
     }
 
-    /// Return a reference to the underlaying `TurtleScreen` object
+    /// Return a reference to the underlaying `TurtleScreen` object.
+    ///
+    /// # Implementation detail
+    ///
+    /// A `RefMut` is from `std::cell` is returned. You should not keep this
+    /// object around and drop it as soon as possible! If you store the returned
+    /// reference, future access to turtle functions **willl panic**!
+    ///
+    /// The borrow checker can not protect you. Be warned!
     pub fn get_screen(&mut self) -> RefMut<TurtleScreen> {
         self.screen.borrow_mut()
     }
