@@ -325,3 +325,87 @@ pub fn tokenize(input: &str) -> Result<VecDeque<MetaToken>, LexError> {
     let tokenizer = Tokenizer::new();
     tokenizer.tokenize(input)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tokens(input: &str) -> Vec<Token> {
+        tokenize(input).unwrap().into_iter().map(|tok| tok.token).collect()
+    }
+
+    fn token(input: &str) -> Token {
+        let mut t = tokens(input);
+        assert_eq!(t.len(), 1);
+        t.remove(0)
+    }
+
+    #[test]
+    fn test_simple_tokens() {
+        use super::Token::*;
+        let source =
+            "[ ] ( ) : = < > <= >= <> + - * / := learn do else
+            repeat while if end for return try";
+        let result = tokens(source);
+        let expected = &[
+            LBracket,
+            RBracket,
+            LParens,
+            RParens,
+            Colon,
+            OpEq,
+            OpLt,
+            OpGt,
+            OpLe,
+            OpGe,
+            OpNe,
+            OpPlus,
+            OpMinus,
+            OpMul,
+            OpDiv,
+            OpDefine,
+            KeyLearn,
+            KeyDo,
+            KeyElse,
+            KeyRepeat,
+            KeyWhile,
+            KeyIf,
+            KeyEnd,
+            KeyFor,
+            KeyReturn,
+            KeyTry,
+        ];
+        assert_eq!(&result, expected);
+    }
+
+    #[test]
+    fn test_number() {
+        assert_eq!(token("0"), Token::Number(0.0));
+        assert_eq!(token("0.0"), Token::Number(0.0));
+    }
+
+    #[test]
+    fn test_word() {
+        let ts = tokens("foo bar");
+        let expected = &[
+            Token::Word("foo".into()),
+            Token::Word("bar".into()),
+        ];
+        assert_eq!(&ts, expected);
+    }
+
+    #[test]
+    fn test_number_string() {
+        assert_eq!(token(r#""Test""#), Token::String("Test".into()));
+    }
+
+    #[test]
+    fn test_unterminated_string() {
+        let error = tokenize(r#""foobar"#).unwrap_err();
+        match error {
+            LexError::UnterminatedString(_) => (),
+            _ => panic!("Expected UnterminatedString, got {:?}", error),
+        }
+    }
+}
