@@ -346,17 +346,17 @@ impl TurtleScreen {
         let text_display = glium_text::TextDisplay::new(&self.text_system, &self.font, data);
         let (width, height) = frame.get_dimensions();
         // Note that this is not column-major layout
-        let rotation_matrix = na::Mat4::new(
+        let rotation_matrix = na::Matrix4::new(
             cos_d, -sin_d, 0., 0.,
             sin_d, cos_d, 0., 0.,
             0., 0., 1., 0.,
             0., 0., 0., 1.);
-        let scale_matrix = na::Mat4::new(
+        let scale_matrix = na::Matrix4::new(
             2. * FONT_SIZE / width as f32, 0., 0., 0.,
             0., 2. * FONT_SIZE / height as f32, 0., 0.,
             0., 0., 1., 0.,
             0., 0., 0., 1.);
-        let translate_matrix = na::Mat4::new(
+        let translate_matrix = na::Matrix4::new(
             1., 0., 0., pos_x * 2. / width as f32,
             0., 1., 0., pos_y * 2. / height as f32,
             0., 0., 1., 0.,
