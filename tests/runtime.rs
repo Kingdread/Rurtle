@@ -2,9 +2,12 @@ extern crate rurtle;
 mod support;
 use support::image;
 
-use std::fs;
-use std::io::Read;
+use std::fs::{self, File};
+use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::ffi::OsStr;
+
+const RESULT_DIR: &'static str = "test-results";
 
 #[test]
 fn runtime_tests() {
@@ -17,20 +20,37 @@ fn runtime_tests() {
 }
 
 fn check_files<I: Iterator<Item=PathBuf>>(files: I) -> (u32, u32) {
+    fs::create_dir(RESULT_DIR).unwrap_or(());
+    let report_path = PathBuf::from(RESULT_DIR).join(String::from("test-result"));
+    let mut report = File::create(report_path).unwrap();
     let mut count = 0;
     let mut fails = 0;
     for file in files.filter(|path| path.extension() == Some(String::from("rtl").as_ref())) {
-        println!("Testing {}...", file.display());
-        if let Err(path) = check_file(file) {
-            fails += 1;
-            println!("    Failed, output saved as {}", path.display())
+        print!("Testing {} ... ", file.display());
+        write!(&mut report, "{}/",
+               file.file_name().and_then(OsStr::to_str).unwrap()).unwrap();
+        let result_path;
+        match check_file(file) {
+            Ok(path) => {
+                println!("Passed");
+                write!(&mut report, "ok/").unwrap();
+                result_path = path;
+            },
+            Err(path) => {
+                fails += 1;
+                println!("       Failed, output saved as {}", path.display());
+                write!(&mut report, "fail/").unwrap();
+                result_path = path;
+            },
         }
+        writeln!(&mut report, "{}",
+                 result_path.file_name().and_then(OsStr::to_str).unwrap()).unwrap();
         count += 1;
     }
     (count, fails)
 }
 
-fn check_file(mut name: PathBuf) -> Result<(), PathBuf> {
+fn check_file(mut name: PathBuf) -> Result<PathBuf, PathBuf> {
     // Open and read the test source file
     let mut file = fs::File::open(&name).expect("Can't open file to test");
     let mut source = String::new();
@@ -50,14 +70,15 @@ fn check_file(mut name: PathBuf) -> Result<(), PathBuf> {
     name.set_extension("png");
     let reference = image::open(&name).expect("Can't open reference file");
     let okay = support::image_eq(&shot, &reference);
-    if okay {
-        return Ok(())
-    };
 
-    // Save the wrong output to review it
-    fs::create_dir("test-results").unwrap_or(());
-    let result_path = PathBuf::from("test-results/").join(name.file_name().unwrap());
+    // Save the output to review it
+    let result_path = PathBuf::from(RESULT_DIR).join(name.file_name().unwrap());
     let mut result_file = fs::File::create(&result_path).expect("Can't write test output");
     shot.save(&mut result_file, image::PNG).expect("Can't write test output");
-    Err(result_path)
+
+    if okay {
+        Ok(result_path)
+    } else {
+        Err(result_path)
+    }
 }
