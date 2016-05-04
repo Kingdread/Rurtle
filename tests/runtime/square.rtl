@@ -1,0 +1,1 @@
+repeat 4 do forward 100 right 90 end
