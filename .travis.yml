@@ -1,19 +1,21 @@
 language: rust
 rust:
-    - stable
-    - beta
-    - nightly
-
+- stable
+- beta
+- nightly
 os:
-    - linux
-
+- linux
 matrix:
-    allow_failures:
-        - rust: nightly
-
+  allow_failures:
+  - rust: nightly
 addons:
-    apt:
-        packages:
-            - freeglut3-dev
-            - libxxf86vm-dev
-            - libosmesa6-dev
+  apt:
+    packages:
+    - freeglut3-dev
+    - libxxf86vm-dev
+    - libosmesa6-dev
+env:
+  global:
+    secure: ByBECmABihhnEdXYZFn2KCOnUjydbgEjUNLgzbmXbh+PckQWPzlsWhFrLUiWNisJ4+bjrP73a6GRB9xIBzVGbThh33twGm55cgYD0chiU4J9ptFTEIkzio5L5ypVh5G25uiHR5J+64neEJu6FRcvf6O+rCm44Iajq94l9G54QUS8F9f2hw0Jhw12Z94hq90bQFtX6MEszjmnPoSU2L8LdedVzTMieseLxeDfe6rvUpwgE7Id8uH23mu0ZS7kiP1ySBN1QP0nQZIwCYHEGC3QgZCjk3EbUvffiKufnZIn6ur19E/oJ7nLoUtytwR+huSrP/ifQFOyrchaY5L6wdrs/mmGie09GtUR3a1JPOFap/7A+BLZRN2o7aJsb0mQmYKg9RU2bFGJ6YEtH63FAwkkAnD8CNItWgKEmmFjvOESodZWKTHwXO+Jyf8Uk5t2XliOlaYwkDb2qUKTuiTm9QFOZI4lVZaJHKqbItEk8IcAIqsjRNUWsoyC5lwsimeqMbO54gy3gASCQfapqosil8TyC3zPupf/8GM8l09C8ju39KdclmV1VJCxvkGxisALvFH9ZfIARcyZS4Znm5hFy3Kqy6/ekAXXbhbkQuFZ3EB2Hd0rUhP5YZniKk9FX7jT6jK5X7ClI2w86i7KCec969HdqRk/evv7qvfJN3CXzbm06O0=
+after_script:
+- pip install --user requests && python tests/upload_results.py
