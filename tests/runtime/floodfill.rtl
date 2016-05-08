@@ -1,0 +1,13 @@
+penup
+forward 100
+right 135
+pendown
+repeat 4 do
+    forward 141
+    right 90
+end
+left 135
+penup
+backward 100
+color 0.2 0.4 0.6
+flood

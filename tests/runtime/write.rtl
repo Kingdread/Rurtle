@@ -1,0 +1,7 @@
+penup
+repeat 8 do
+    forward 100
+    write "foobar"
+    backward 100
+    right 45
+end
