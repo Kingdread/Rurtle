@@ -59,15 +59,22 @@ pub use graphic::builder::{Window, Headless};
 pub mod turtle;
 pub use turtle::Turtle;
 
+#[cfg(feature = "cli")]
 pub mod lex;
+#[cfg(feature = "cli")]
 pub use lex::tokenize;
 
+#[cfg(feature = "cli")]
 pub mod parse;
+#[cfg(feature = "cli")]
 pub use parse::Parser;
 
+#[cfg(feature = "cli")]
 pub mod environ;
+#[cfg(feature = "cli")]
 pub use environ::Environment;
 
+#[cfg(feature = "cli")]
 pub mod readline;
 
 pub mod floodfill;

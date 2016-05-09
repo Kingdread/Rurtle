@@ -3,7 +3,9 @@
 extern crate rurtle;
 extern crate image;
 
+#[cfg(feature = "cli")]
 use rurtle::{graphic, turtle, environ, readline};
+#[cfg(feature = "cli")]
 use rurtle::environ::value::Value;
 
 use std::{env, fs, thread, time, process};
@@ -13,6 +15,7 @@ use std::sync::mpsc;
 
 const PROMPT: &'static str = "Rurtle> ";
 
+#[cfg(feature = "cli")]
 fn main() {
     let args = env::args().skip(1);
     let mut debug_output: Option<String> = None;
@@ -125,4 +128,17 @@ fn main() {
     // "unused result which must be used" :)
     hermes_out.send(true).unwrap_or(());
     guard.join().unwrap();
+}
+
+
+#[cfg(not(feature = "cli"))]
+fn main() {
+    println!(r" __                                                                 ");
+    println!(r"/  \                                                                ");
+    println!(r"|  |                                                                ");
+    println!(r"@  @  It looks like you want to use the Rurtle CLI...               ");
+    println!(r"|  |     ...the Rurtle CLI requires the 'cli' feature enabled'...   ");
+    println!(r"|| ||       ...would you like help with that?                       ");
+    println!(r"|\_/|                                                               ");
+    println!(r"\___/             <Yes>    <No>                                     ");
 }

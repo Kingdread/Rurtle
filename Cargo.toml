@@ -13,9 +13,10 @@ name = "rurtle"
 doc = false
 
 [features]
-default = []
+default = ["cli"]
 # Clippy only works with nightly Rust, so we optionally enable it
 linted = ["clippy"]
+cli = []
 
 [dependencies]
 glium = "0.14.0"
