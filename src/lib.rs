@@ -28,6 +28,13 @@
 //! Note that you can have multiple turtle screens, and even multiple turtles
 //! per screen. However, once created, turtles can't be moved across screens.
 //!
+//! By default rurtle still compiles all modules, even the ones that are only
+//! used to lex and parse rurtle source. If you do not need these functions,
+//! you can disable the "cli" feature via cargo, which is otherwise enabled by
+//! default. Disabling the "cli" feature disables the `lex`, `parse`, `environ`
+//! and `readline` modules, leaving only `turtle`, `graphic` and `floodfill`
+//! enabled.
+//!
 //! # Usage as a standalone application
 //!
 //! Rurtle comes with a command line interpreter that supports the rurtle
