@@ -64,12 +64,12 @@ fn check_file(mut name: PathBuf) -> Result<PathBuf, PathBuf> {
     // Get the screenshot
     let mut screen = environ.get_turtle().get_screen();
     screen.draw_and_update();
-    let shot = screen.screenshot();
+    let mut shot = screen.screenshot();
 
     // Open the reference image
     name.set_extension("png");
-    let reference = image::open(&name).expect("Can't open reference file");
-    let okay = support::image_eq(&shot, &reference);
+    let mut reference = image::open(&name).expect("Can't open reference file");
+    let okay = support::image_eq(&mut shot, &mut reference);
 
     // Save the output to review it
     let result_path = PathBuf::from(RESULT_DIR).join(name.file_name().unwrap());
