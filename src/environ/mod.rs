@@ -49,6 +49,21 @@ pub enum Function {
     Native(i32, FuncType),
 }
 
+impl Function {
+    fn arg_count(&self) -> i32 {
+        use self::Function::*;
+        match *self {
+            Defined(ref node) => {
+                match *node {
+                    Node::LearnStatement(_, ref args, _) => args.len() as i32,
+                    _ => panic!("Defined function is no LearnStatement!"),
+                }
+            },
+            Native(count, _) => count,
+        }
+    }
+}
+
 impl Clone for Function {
     fn clone(&self) -> Function {
         use self::Function::*;
@@ -76,19 +91,10 @@ impl fmt::Debug for Function {
     }
 }
 
-macro_rules! framed {
-    ($s:expr, $what:expr) => {
-        {
-            $s.push_inner_frame();
-            let framed_result = $what;
-            $s.pop_inner_frame();
-            framed_result
-        }
-    }
-}
 
 pub struct Environment {
     stack: Vec<stack::Frame>,
+    statement_lists: Vec<Vec<Node>>,
     turtles: HashMap<String, turtle::Turtle>,
     current_turtle: String,
 }
@@ -100,6 +106,7 @@ impl Environment {
         map.insert("default".into(), turtle);
         Environment {
             stack: stack::new_stack(),
+            statement_lists: Vec::new(),
             turtles: map,
             current_turtle: "default".into(),
         }
@@ -143,38 +150,10 @@ impl Environment {
         true
     }
 
-    /// Return a map mapping the function name to the argument count. Useful for
-    /// passing it to `Parser::parse`
-    pub fn function_arg_count(&self) -> HashMap<String, i32> {
-        let mut result = HashMap::new();
-        // We walk the stack and insert the functions of each frame into the
-        // "global stack" of the parser. If a function is redefined in a "tighter"
-        // stack, it will overwrite the more general version
-        for stack_frame in &self.stack {
-            for mini_frame in &stack_frame.functions {
-                for (name, function) in mini_frame {
-                    let count = match *function {
-                        Function::Native(i, _) => i,
-                        Function::Defined(ref node) => {
-                            match *node {
-                                Node::LearnStatement(_, ref args, _) => args.len() as i32,
-                                _ => panic!("Function node is not a LearnStatement"),
-                            }
-                        },
-                    };
-                    result.insert(name.clone(), count);
-                }
-            }
-        }
-        result
-    }
-
     fn find_function(&self, name: &str) -> Option<&Function> {
         for stack_frame in self.stack.iter().rev() {
-            for mini_frame in stack_frame.functions.iter().rev() {
-                if let Some(f) = mini_frame.get(name) {
-                    return Some(f);
-                }
+            if let Some(f) = stack_frame.functions.get(name) {
+                return Some(f);
             }
         }
         None
@@ -188,7 +167,7 @@ impl Environment {
             Ok(t) => t,
             Err(e) => return Err(Box::new(e)),
         };
-        let mut parser = parse::Parser::new(tokens, self.function_arg_count());
+        let mut parser = parse::Parser::new(tokens);
         let tree = match parser.parse() {
             Ok(n) => n.flatten(),
             Err(e) => return Err(Box::new(e)),
@@ -222,8 +201,8 @@ impl Environment {
                 self.eval_addition(start, values),
             Multiplication(ref start, ref values) =>
                 self.eval_multiplication(start, values),
-            FuncCall(ref name, ref args) =>
-                self.eval_func_call(name, args),
+            FuncCall(ref name) =>
+                self.eval_func_call(name),
             ReturnStatement(ref value) =>
                 self.eval_return_statement(value),
             TryStatement(ref normal, ref exception) =>
@@ -242,10 +221,13 @@ impl Environment {
     }
 
     fn eval_statement_list(&mut self, statements: &[Node]) -> ResultType {
-        for statement in statements {
-            try!(self.eval(statement));
+        let mut result = Value::Nothing;
+        self.statement_lists.push(statements.to_vec());
+        while !self.statement_lists.last().unwrap().is_empty() {
+            let statement = self.statement_lists.last_mut().unwrap().remove(0);
+            result = try!(self.eval(&statement));
         }
-        Ok(Value::Nothing)
+        Ok(result)
     }
 
     fn eval_if_statement(&mut self, condition: &Node, true_body: &Node,
@@ -254,9 +236,9 @@ impl Environment {
     {
         let value = try!(self.eval(condition));
         if value.boolean() {
-            try!(framed!(self, self.eval(true_body)));
+            try!(self.eval(true_body));
         } else if let Some(ref false_body) = *false_body {
-            try!(framed!(self, self.eval(false_body)));
+            try!(self.eval(false_body));
         }
         Ok(Value::Nothing)
     }
@@ -265,7 +247,7 @@ impl Environment {
         let num = try!(self.eval(num));
         if let Value::Number(num) = num {
             for _ in 0..num as i32 {
-                try!(framed!(self, self.eval(body)));
+                try!(self.eval(body));
             }
             Ok(Value::Nothing)
         } else {
@@ -275,14 +257,14 @@ impl Environment {
 
     fn eval_while_statement(&mut self, condition: &Node, body: &Node) -> ResultType {
         while try!(self.eval(condition)).boolean() {
-            try!(framed!(self, self.eval(body)));
+            try!(self.eval(body));
         }
         Ok(Value::Nothing)
     }
 
     fn eval_learn_statement(&mut self, statement: &Node) -> ResultType {
         if let Node::LearnStatement(ref name, _, _) = *statement {
-            self.current_frame().functions.last_mut().unwrap()
+            self.current_frame().functions
                 .insert(name.clone(), Function::Defined(statement.clone()));
             Ok(Value::Nothing)
         } else {
@@ -291,12 +273,10 @@ impl Environment {
     }
 
     fn eval_try_statement(&mut self, normal: &Node, exception: &Node) -> ResultType {
-        let result = framed!(self, self.eval(normal));
+        let result = self.eval(normal);
         match result {
             Ok(_) => Ok(Value::Nothing),
-            Err(_) => {
-                framed!(self, self.eval(exception))
-            },
+            Err(_) => self.eval(exception),
         }
     }
 
@@ -349,12 +329,20 @@ impl Environment {
         Ok(accum)
     }
 
-    fn eval_func_call(&mut self, name: &str, arg_nodes: &[Node]) -> ResultType {
+    fn eval_func_call(&mut self, name: &str) -> ResultType {
         let function = match self.find_function(&name.to_uppercase()) {
             Some(f) => f.clone(),
             None => return Err(RuntimeError(format!("function {} not found", name))),
         };
-        let args: Vec<Value> = try!(arg_nodes.iter().map(|a| self.eval(a)).collect());
+        let mut args = Vec::new();
+        for _ in 0..function.arg_count() {
+            let arg = match self.statement_lists.last_mut() {
+                None => return Err(RuntimeError(format!("Expected another argument for {}", name))),
+                Some(ref v) if v.is_empty() => return Err(RuntimeError(format!("Expected another argument for {}", name))),
+                Some(ref mut v) => v.remove(0),
+            };
+            args.push(try!(self.eval(&arg)));
+        }
         match function {
             Function::Native(_, ref f) => {
                 f(self, &args)
@@ -429,16 +417,6 @@ impl Environment {
     /// Return the global frame
     pub fn global_frame(&mut self) -> &mut stack::Frame {
         &mut self.stack[0]
-    }
-
-    fn push_inner_frame(&mut self) {
-        self.current_frame().functions.push(HashMap::new());
-    }
-
-    fn pop_inner_frame(&mut self) {
-        debug_assert!(self.current_frame().functions.len() > 1,
-                      "trying to pop single inner frame");
-        self.current_frame().functions.pop().unwrap();
     }
 
     /// Retrieve the value for the variable with the given name

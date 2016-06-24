@@ -29,8 +29,8 @@ pub enum Node {
     /// Multiplication and division. One multiplication may hole more than one
     /// operation.
     Multiplication(Box<Node>, Vec<(MulOp, Node)>),
-    /// A function call (function, arguments)
-    FuncCall(String, Vec<Node>),
+    /// A function call (by function name)
+    FuncCall(String),
     ReturnStatement(Box<Node>),
     Assignment(String, Box<Node>),
     List(Vec<Node>),
@@ -69,6 +69,10 @@ impl Node {
             }
             StatementList(mut stmts) => {
                 if stmts.len() == 1 {
+                    // Never flatten a FuncCall in a StatementList
+                    if let FuncCall(..) = stmts[0] {
+                        return StatementList(stmts);
+                    }
                     stmts.remove(0).flatten()
                 } else {
                     StatementList(flatten(stmts))
@@ -95,7 +99,6 @@ impl Node {
                                                              op,
                                                              Box::new(operand2.flatten())),
             ReturnStatement(value) => ReturnStatement(Box::new(value.flatten())),
-            FuncCall(name, args) => FuncCall(name, flatten(args)),
             Assignment(name, value) => Assignment(name, Box::new(value.flatten())),
             node => node,
         }

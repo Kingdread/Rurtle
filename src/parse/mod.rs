@@ -1,16 +1,5 @@
 //! Parsing module for Rurtle programs.
 //!
-//! Note that parsing requires some additional information, i.e. the number of
-//! arguments for a function. Function calls in Rurtle need neither parenthesis
-//! nor something else, so this is legal:
-//!
-//! ```text
-//! FUNCA FUNCB 10
-//! ```
-//!
-//! Depending on how many arguments each function takes, this may be parsed as
-//! either `funca(funcb(10))` or `funca(funcb(), 10)`.
-//!
 //! # Grammar
 //!
 //! A EBNF-like (incomplete) grammar may look like
@@ -44,16 +33,12 @@ pub mod ast;
 use super::lex::{Token, MetaToken};
 use self::ast::{Node, AddOp, MulOp, CompOp};
 use self::ast::Node::*;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::{error, fmt};
-
-/// A `FuncMap` maps the name of a function to the number of arguments it takes
-pub type FuncMap = HashMap<String, i32>;
 
 /// A `Parser` builds an AST from the given input token stream.
 pub struct Parser {
     tokens: VecDeque<MetaToken>,
-    scope_stack: Vec<Scope>,
     last_line: u32,
 }
 
@@ -61,7 +46,6 @@ pub struct Parser {
 pub enum ParseErrorKind {
     UnexpectedToken(&'static str, Token),
     UnexpectedEnd,
-    UnknownFunction(String),
 }
 
 impl fmt::Display for ParseErrorKind {
@@ -76,10 +60,6 @@ impl fmt::Display for ParseErrorKind {
                 fmt.pad("'")
             },
             UnexpectedEnd => fmt.pad("unexpected end"),
-            UnknownFunction(ref name) => {
-                try!(fmt.pad("unknown function: "));
-                name.fmt(fmt)
-            }
         }
     }
 }
@@ -103,31 +83,11 @@ impl error::Error for ParseError {
         match self.kind {
             UnexpectedToken(..) => "unexpected token",
             UnexpectedEnd => "unexpected end",
-            UnknownFunction(..) => "unknown function",
         }
     }
 }
 
 pub type ParseResult = Result<Node, ParseError>;
-
-#[derive(Debug, Clone)]
-struct Scope {
-    functions: FuncMap,
-}
-
-impl Scope {
-    pub fn new() -> Scope {
-        Scope {
-            functions: FuncMap::new(),
-        }
-    }
-}
-
-impl Default for Scope {
-    fn default() -> Scope {
-        Scope::new()
-    }
-}
 
 /// Always returns an `Err` value but attaches the required meta information
 /// (such as line number)
@@ -164,13 +124,9 @@ macro_rules! expect {
 
 impl Parser {
     /// Construct a new `Parser`, consuming the given tokens.
-    pub fn new(tokens: VecDeque<MetaToken>, functions: FuncMap) -> Parser {
-        let global_scope = Scope {
-            functions: functions,
-        };
+    pub fn new(tokens: VecDeque<MetaToken>) -> Parser {
         Parser {
             tokens: tokens,
-            scope_stack: vec![global_scope],
             last_line: 0,
         }
     }
@@ -178,29 +134,6 @@ impl Parser {
     /// Attempt to return the root node
     pub fn parse(&mut self) -> ParseResult {
         self.parse_statement_list()
-    }
-
-    fn current_scope_mut(&mut self) -> &mut Scope {
-        self.scope_stack.last_mut().expect("scope_stack is empty, should have global scope")
-    }
-
-    fn push_scope(&mut self) {
-        self.scope_stack.push(Scope::new())
-    }
-
-    fn pop_scope(&mut self) {
-        debug_assert!(self.scope_stack.len() > 1, "Trying to pop global scope");
-        self.scope_stack.pop().expect("scope_stack is empty, should have global scope");
-    }
-
-    fn find_function_arg_count(&self, name: &str) -> Option<i32> {
-        for scope in self.scope_stack.iter().rev() {
-            let function_map = &scope.functions;
-            if let Some(i) = function_map.get(name) {
-                return Some(*i);
-            }
-        }
-        None
     }
 
     fn peek(&self) -> Token {
@@ -226,8 +159,6 @@ impl Parser {
     }
 
     fn parse_loop_body(&mut self) -> ParseResult {
-        // Loop bodies generally introduce new scopes
-        self.push_scope();
         let mut statements = Vec::new();
         while !self.tokens.is_empty() {
             match self.peek() {
@@ -237,7 +168,6 @@ impl Parser {
                 },
             }
         }
-        self.pop_scope();
         Ok(StatementList(statements))
     }
 
@@ -273,9 +203,6 @@ impl Parser {
                 token => parse_error!(self, UnexpectedToken("Token::KeyDo", token)),
             }
         }
-        // We need the argument count for this function if it appears later
-        // during the parsing stage (e.g. in a recursive call)
-        self.current_scope_mut().functions.insert(name.clone(), variables.len() as i32);
         let statements = try!(self.parse_loop_body());
         expect!(self, Token::KeyEnd);
         Ok(LearnStatement(name, variables, Box::new(statements)))
@@ -433,15 +360,23 @@ impl Parser {
             },
             // A function call
             Token::Word(name) => {
-                let argument_count = match self.find_function_arg_count(&name.to_uppercase()) {
-                    Some(i) => i,
-                    None => parse_error!(self, UnknownFunction(name)),
-                };
-                let mut arguments = Vec::new();
-                for _ in 0..argument_count {
-                    arguments.push(try!(self.parse_expression()));
+                let mut res = vec![FuncCall(name)];
+                while !self.tokens.is_empty() {
+                    let next = self.peek();
+                    match next {
+                        // Avoid nested function calls, we use a stack instead in the runtime (like
+                        // FORTH)
+                        Token::Word(name) => {
+                            try!(self.pop_left());
+                            res.push(FuncCall(name));
+                        },
+                        Token::LParens | Token::LBracket | Token::Colon | Token::String(..)
+                            | Token::Number(..) | Token::OpMinus | Token::OpPlus =>
+                            res.push(try!(self.parse_expression())),
+                        _ => break,
+                    }
                 }
-                Ok(FuncCall(name, arguments))
+                Ok(StatementList(res))
             },
             Token::String(string) => Ok(StringLiteral(string)),
             Token::Number(num) => Ok(Number(num)),
