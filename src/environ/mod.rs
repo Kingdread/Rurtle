@@ -227,6 +227,7 @@ impl Environment {
             let statement = self.statement_lists.last_mut().unwrap().remove(0);
             result = try!(self.eval(&statement));
         }
+        self.statement_lists.pop();
         Ok(result)
     }
 
