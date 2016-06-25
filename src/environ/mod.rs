@@ -221,14 +221,23 @@ impl Environment {
     }
 
     fn eval_statement_list(&mut self, statements: &[Node]) -> ResultType {
-        let mut result = Value::Nothing;
+        let result = try!(self.eval_statement_list_multi(statements));
+        if let Value::List(mut l) = result {
+            Ok(l.pop().unwrap_or(Value::Nothing))
+        } else {
+            unreachable!("eval_statement_list_multi should always return a Value::List");
+        }
+    }
+
+    fn eval_statement_list_multi(&mut self, statements: &[Node]) -> ResultType {
+        let mut result = Vec::new();
         self.statement_lists.push(statements.to_vec());
         while !self.statement_lists.last().unwrap().is_empty() {
             let statement = self.statement_lists.last_mut().unwrap().remove(0);
-            result = try!(self.eval(&statement));
+            result.push(try!(self.eval(&statement)));
         }
         self.statement_lists.pop();
-        Ok(result)
+        Ok(Value::List(result))
     }
 
     fn eval_if_statement(&mut self, condition: &Node, true_body: &Node,
@@ -396,7 +405,15 @@ impl Environment {
     fn eval_list(&mut self, elements: &[Node]) -> ResultType {
         let mut result = Vec::new();
         for node in elements {
-            result.push(try!(self.eval(node)));
+            match *node {
+                Node::StatementList(ref nodes) => {
+                    match try!(self.eval_statement_list_multi(nodes)) {
+                        Value::List(l) => result.extend(l),
+                        _ => unreachable!("eval_statement_list_multi always returns a list"),
+                    }
+                }
+                _ => result.push(try!(self.eval(node))),
+            }
         }
         Ok(Value::List(result))
     }
