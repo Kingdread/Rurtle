@@ -104,11 +104,11 @@ fn main() {
         };
         if !source.is_empty() {
             readline::add_history(&source);
-        }
-        match environ.eval_source(&source) {
-            Ok(ref v) if *v != Value::Nothing => println!("{}", v),
-            Err(e) => println!("{}: {}", e.description(), e),
-            _ => (),
+            match environ.eval_source(&source) {
+                Ok(ref v) if *v != Value::Nothing => println!("{}", v),
+                Err(e) => println!("{}: {}", e.description(), e),
+                _ => (),
+            }
         }
         let mut screen = environ.get_turtle().get_screen();
         screen.draw_and_update();
