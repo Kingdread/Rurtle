@@ -173,9 +173,9 @@ impl Environment {
             Err(e) => return Err(Box::new(e)),
         };
         match self.eval(&tree) {
-            Ok(v) => return Ok(v),
-            Err(e) => return Err(Box::new(e)),
-        };
+            Ok(v) => Ok(v),
+            Err(e) => Err(Box::new(e)),
+        }
     }
 
     /// Evaluate the given AST node
