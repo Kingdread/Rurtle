@@ -3,35 +3,50 @@
 extern crate rurtle;
 extern crate image;
 extern crate rustyline;
+extern crate docopt;
+extern crate rustc_serialize;
 
 #[cfg(feature = "cli")]
 use rurtle::{graphic, turtle, environ};
 #[cfg(feature = "cli")]
 use rurtle::environ::value::Value;
 
-use std::{env, fs, thread, time, process};
+use std::{fs, thread, time, process};
 use std::error::Error;
-use std::io::{self, Read, Write};
+use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
 
 use rustyline::Editor;
 
+use docopt::Docopt;
+
 const PROMPT: &'static str = "Rurtle> ";
+
+const USAGE: &'static str = "
+Rurtle Command Line Interface.
+
+Usage:
+    rurtle [options] [<file>...]
+
+Options:
+    -h, --help                  Show this help.
+    -o <file>, --output <file>  Set the output file.
+";
+
+#[derive(Debug, RustcDecodable)]
+struct Args {
+    arg_file: Vec<String>,
+    flag_output: Option<String>,
+}
 
 #[cfg(feature = "cli")]
 fn main() {
-    let args = env::args().skip(1);
-    let mut debug_output: Option<String> = None;
-    let args: Vec<_> = args.filter(
-        |arg| if arg.starts_with("--test=") {
-            debug_output = Some(arg[7..].into());
-            false
-        } else {
-            true
-        }
-    ).collect();
+    let args: Args = Docopt::new(USAGE)
+        .and_then(|d| d.decode())
+        .unwrap_or_else(|e| e.exit());
+
     let mut environ = {
-        let screen = if debug_output.is_none() {
+        let screen = if args.flag_output.is_none() {
             graphic::TurtleScreen::new((640, 640), "Rurtle")
         } else {
             // Screen to generate the test data for integration tests
@@ -48,7 +63,8 @@ fn main() {
         let turtle = turtle::Turtle::new(screen);
         environ::Environment::new(turtle)
     };
-    for filename in &args {
+
+    for filename in &args.arg_file {
         let mut file = fs::File::open(&filename).unwrap();
         let mut source = String::new();
         file.read_to_string(&mut source).unwrap();
@@ -58,19 +74,7 @@ fn main() {
             return
         }
     };
-    if let Some(filename) = debug_output {
-        environ.get_turtle().get_screen().draw_and_update();
-        let screenshot = environ.get_turtle().get_screen().screenshot();
-        let test_file = fs::File::open(&filename);
-        if test_file.is_ok() {
-            println!("{} already exists!", filename);
-            process::exit(1);
-        }
-        let mut file = fs::File::create(&filename).unwrap();
-        screenshot.save(&mut file, image::PNG).unwrap();
-        println!("Saved to {}", filename);
-        return
-    }
+
     let (tx, rx) = mpsc::channel();
     // We use the hermes channel to make the "read thread" wait before printing
     // the next prompt and to signal it when the window closed.
@@ -79,6 +83,7 @@ fn main() {
 
     // Thread to do the blocking read so we can keep updating the window in the
     // main thread
+    // Clone the readline so we can move the clone into the thread.
     let crl = rl.clone();
     let guard = thread::spawn(move || {
         loop {
@@ -86,7 +91,7 @@ fn main() {
             match input {
                 Ok(string) => tx.send(string).unwrap(),
                 Err(err) => {
-                    write!(io::stderr(), "Error: {:?}", err).unwrap();
+                    println!("Error: {:?}", err);
                     break;
                 },
             }
@@ -136,6 +141,20 @@ fn main() {
     // "unused result which must be used" :)
     hermes_out.send(true).unwrap_or(());
     guard.join().unwrap();
+
+    if let Some(filename) = args.flag_output {
+        environ.get_turtle().get_screen().draw_and_update();
+        let screenshot = environ.get_turtle().get_screen().screenshot();
+        let test_file = fs::File::open(&filename);
+        if test_file.is_ok() {
+            println!("{} already exists!", filename);
+            process::exit(1);
+        }
+        let mut file = fs::File::create(&filename).unwrap();
+        screenshot.save(&mut file, image::PNG).unwrap();
+        println!("Saved to {}", filename);
+        return
+    }
 }
 
 
