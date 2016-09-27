@@ -1,5 +1,5 @@
 use super::{Environment, ResultType, RuntimeError, Value};
-use std::fs;
+use std::{fs, io};
 
 pub fn make(env: &mut Environment, args: &[Value]) -> ResultType {
     if let Value::String(ref name) = args[0] {
@@ -35,12 +35,10 @@ pub fn screenshot(env: &mut Environment, args: &[Value]) -> ResultType {
 
 pub fn prompt(_: &mut Environment, args: &[Value]) -> ResultType {
     get_args!(args, arg Value::String(ref prompt_string), => {
-        // What?
-        let input = super::super::super::readline::readline(prompt_string);
-        match input {
-            Some(i) => Ok(Value::String(i)),
-            None => Err(RuntimeError("No input to get".to_owned())),
-        }
+        print!("{}", prompt_string);
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        Ok(Value::String(input))
     })
 }
 

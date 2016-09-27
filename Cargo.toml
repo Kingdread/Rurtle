@@ -25,6 +25,7 @@ nalgebra = "0.10.1"
 image = "0.10.0"
 libc = "0.2.10"
 bit-vec = "0.4.3"
+rustyline = "1.0.0"
 
 [dependencies.clippy]
 version = "0.0.90"

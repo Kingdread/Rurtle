@@ -2,16 +2,19 @@
 #![cfg_attr(feature = "linted", plugin(clippy))]
 extern crate rurtle;
 extern crate image;
+extern crate rustyline;
 
 #[cfg(feature = "cli")]
-use rurtle::{graphic, turtle, environ, readline};
+use rurtle::{graphic, turtle, environ};
 #[cfg(feature = "cli")]
 use rurtle::environ::value::Value;
 
 use std::{env, fs, thread, time, process};
 use std::error::Error;
-use std::io::Read;
-use std::sync::mpsc;
+use std::io::{self, Read, Write};
+use std::sync::{mpsc, Arc, Mutex};
+
+use rustyline::Editor;
 
 const PROMPT: &'static str = "Rurtle> ";
 
@@ -72,15 +75,20 @@ fn main() {
     // We use the hermes channel to make the "read thread" wait before printing
     // the next prompt and to signal it when the window closed.
     let (hermes_out, hermes_in) = mpsc::channel();
+    let rl = Arc::new(Mutex::new(Editor::<()>::new()));
 
     // Thread to do the blocking read so we can keep updating the window in the
     // main thread
+    let crl = rl.clone();
     let guard = thread::spawn(move || {
         loop {
-            let input = readline::readline(PROMPT);
+            let input = crl.lock().unwrap().readline(PROMPT);
             match input {
-                Some(string) => tx.send(string).unwrap(),
-                None => break,
+                Ok(string) => tx.send(string).unwrap(),
+                Err(err) => {
+                    write!(io::stderr(), "Error: {:?}", err).unwrap();
+                    break;
+                },
             }
             match hermes_in.recv() {
                 Ok(false) => (),
@@ -103,7 +111,7 @@ fn main() {
             Err(Disconnected) => break,
         };
         if !source.is_empty() {
-            readline::add_history(&source);
+            rl.lock().unwrap().add_history_entry(&source);
             match environ.eval_source(&source) {
                 Ok(ref v) if *v != Value::Nothing => println!("{}", v),
                 Err(e) => println!("{}: {}", e.description(), e),

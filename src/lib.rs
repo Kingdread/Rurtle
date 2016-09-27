@@ -81,7 +81,4 @@ pub mod environ;
 #[cfg(feature = "cli")]
 pub use environ::Environment;
 
-#[cfg(feature = "cli")]
-pub mod readline;
-
 pub mod floodfill;
