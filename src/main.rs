@@ -14,9 +14,10 @@ use rurtle::environ::value::Value;
 use std::{fs, thread, time, process};
 use std::error::Error;
 use std::io::Read;
-use std::sync::{mpsc, Arc, Mutex};
+use std::ops::Deref;
+use std::sync::{mpsc, Arc, Mutex, MutexGuard};
 
-use rustyline::Editor;
+use rustyline::{Editor, completion};
 
 use docopt::Docopt;
 
@@ -79,7 +80,10 @@ fn main() {
     // We use the hermes channel to make the "read thread" wait before printing
     // the next prompt and to signal it when the window closed.
     let (hermes_out, hermes_in) = mpsc::channel();
-    let rl = Arc::new(Mutex::new(Editor::<()>::new()));
+    let completer = Completer::new();
+    completer.update_from(&mut environ);
+    let rl = Arc::new(Mutex::new(Editor::<Completer>::new()));
+    rl.lock().unwrap().set_completer(Some(completer.clone()));
 
     // Thread to do the blocking read so we can keep updating the window in the
     // main thread
@@ -122,6 +126,7 @@ fn main() {
                 Err(e) => println!("{}: {}", e.description(), e),
                 _ => (),
             }
+            completer.update_from(&mut environ);
         }
         let mut screen = environ.get_turtle().get_screen();
         screen.draw_and_update();
@@ -154,6 +159,58 @@ fn main() {
         screenshot.save(&mut file, image::PNG).unwrap();
         println!("Saved to {}", filename);
         return
+    }
+}
+
+
+#[cfg(feature = "cli")]
+#[derive(Debug, Clone)]
+struct Completer(Arc<Mutex<Vec<String>>>);
+
+
+#[cfg(feature = "cli")]
+impl Completer {
+    pub fn new() -> Completer {
+        Completer(Arc::new(Mutex::new(Vec::new())))
+    }
+
+    fn is_delimiter(c: char) -> bool {
+        !c.is_alphanumeric()
+    }
+
+    /// Update the function table that this completer uses.
+    pub fn update_from(&self, e: &mut environ::Environment) {
+        let mut data = self.0.lock().unwrap();
+        *data = e.global_frame().functions.keys().cloned().collect();
+    }
+
+    /// Return a reference to the function table.
+    pub fn get_functions(&self) -> MutexGuard<Vec<String>> {
+        self.0.lock().unwrap()
+    }
+}
+
+
+#[cfg(feature = "cli")]
+impl completion::Completer for Completer {
+    fn complete(&self, line: &str, pos: usize) -> rustyline::Result<(usize, Vec<String>)> {
+        const KEYWORDS: [&'static str; 7] = [
+            "IF", "REPEAT", "WHILE", "LEARN", "DO", "END", "RETURN"];
+        let functions = self.get_functions();
+        let partial_line = &line[..pos];
+        let start_pos = partial_line.rfind(Completer::is_delimiter)
+            // Skip the delimiter
+            .map(|x| x + 1)
+            // If not delimiter is found, use the start of the line
+            .unwrap_or(0);
+        let prefix = &line[start_pos..pos];
+        let result = KEYWORDS.iter()
+            .map(Deref::deref)
+            .chain(functions.iter().map(|f| &*f as &str))
+            .filter(|word| word.to_lowercase().starts_with(prefix))
+            .map(|s| s.into())
+            .collect();
+        Ok((start_pos, result))
     }
 }
 
