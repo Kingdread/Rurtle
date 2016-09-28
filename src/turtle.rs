@@ -303,9 +303,7 @@ impl Turtle {
 
 impl Drop for Turtle {
     fn drop(&mut self) {
-        // Zeroed memory is fine because TurtleData has no destructor, it just
-        // contains POD (it could even be a C struct).
-        let mut dummy = Rc::new(RefCell::new(unsafe { mem::zeroed() }));
+        let mut dummy = Rc::new(RefCell::new(Default::default()));
         mem::swap(&mut self.data, &mut dummy);
         // dummy is now our real data. When we drop it, the weak references that
         // the TurtleScreen stores become invalid and will be cleaned up.
