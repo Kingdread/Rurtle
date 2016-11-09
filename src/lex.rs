@@ -13,12 +13,15 @@
 //! Variables are prefixed by a colon (:) and otherwise follow the same rules as
 //! identifiers.
 use std::collections::VecDeque;
+use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::error::Error;
 
 /// A `Token` represents a "atom" block of the input source.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     /// An identifier, also called Word
     Word(String),
+    /// A number literal
     Number(f32),
     /// The left bracket [
     LBracket,
@@ -76,8 +79,8 @@ pub enum Token {
     KeyTry,
 }
 
-impl ::std::fmt::Display for Token {
-    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl Display for Token {
+    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         use self::Token::*;
         let debug = format!("{:?}", self);
         fmt.pad(match *self {
@@ -112,27 +115,24 @@ pub enum LexError {
     InvalidNumber(u32, String),
     UnexpectedCharacter(u32, char),
 }
-impl ::std::fmt::Display for LexError {
-    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+
+impl Display for LexError {
+    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         match *self {
             LexError::UnterminatedString(line) => {
-                try!(fmt.pad("unterminated string in line "));
-                line.fmt(fmt)
+                write!(fmt, "unterminated string in line {}", line)
             },
             LexError::InvalidNumber(line, ref s) => {
-                let s = format!("invalid number: {} in line {}", s, line);
-                fmt.pad(&s)
+                write!(fmt, "invalid number: {} in line {}", s, line)
             },
             LexError::UnexpectedCharacter(line, which) => {
-                try!(fmt.pad("unexpected character in line "));
-                try!(line.fmt(fmt));
-                try!(fmt.pad(": "));
-                fmt.pad(&which.to_string())
+                write!(fmt, "unexpected character in line {}: {}", line, which)
             },
         }
     }
 }
-impl ::std::error::Error for LexError {
+
+impl Error for LexError {
     fn description(&self) -> &str {
         match *self {
             LexError::UnterminatedString(..) => "closing quotes are missing",
