@@ -14,7 +14,6 @@ use rurtle::environ::value::Value;
 use std::{fs, thread, time, process};
 use std::error::Error;
 use std::io::Read;
-use std::ops::Deref;
 use std::sync::{mpsc, Arc, Mutex, MutexGuard};
 
 use rustyline::{Editor, completion};
@@ -165,13 +164,19 @@ fn main() {
 
 #[cfg(feature = "cli")]
 #[derive(Debug, Clone)]
-struct Completer(Arc<Mutex<Vec<String>>>);
+struct Completer {
+    functions: Arc<Mutex<Vec<String>>>,
+    variables: Arc<Mutex<Vec<String>>>,
+}
 
 
 #[cfg(feature = "cli")]
 impl Completer {
     pub fn new() -> Completer {
-        Completer(Arc::new(Mutex::new(Vec::new())))
+        Completer {
+            functions: Arc::new(Mutex::new(Vec::new())),
+            variables: Arc::new(Mutex::new(Vec::new())),
+        }
     }
 
     fn is_delimiter(c: char) -> bool {
@@ -180,13 +185,20 @@ impl Completer {
 
     /// Update the function table that this completer uses.
     pub fn update_from(&self, e: &mut environ::Environment) {
-        let mut data = self.0.lock().unwrap();
-        *data = e.global_frame().functions.keys().cloned().collect();
+        let mut functions = self.functions.lock().unwrap();
+        *functions = e.global_frame().functions.keys().cloned().collect();
+        let mut variables = self.variables.lock().unwrap();
+        *variables = e.global_frame().locals.keys().cloned().collect();
     }
 
     /// Return a reference to the function table.
     pub fn get_functions(&self) -> MutexGuard<Vec<String>> {
-        self.0.lock().unwrap()
+        self.functions.lock().unwrap()
+    }
+
+    /// Return a reference to the variables table.
+    pub fn get_variables(&self) -> MutexGuard<Vec<String>> {
+        self.variables.lock().unwrap()
     }
 }
 
@@ -196,21 +208,30 @@ impl completion::Completer for Completer {
     fn complete(&self, line: &str, pos: usize) -> rustyline::Result<(usize, Vec<String>)> {
         const KEYWORDS: [&'static str; 7] = [
             "IF", "REPEAT", "WHILE", "LEARN", "DO", "END", "RETURN"];
-        let functions = self.get_functions();
         let partial_line = &line[..pos];
-        let start_pos = partial_line.rfind(Completer::is_delimiter)
-            // Skip the delimiter
-            .map(|x| x + 1)
-            // If not delimiter is found, use the start of the line
-            .unwrap_or(0);
+        let delim_pos = partial_line.rfind(Completer::is_delimiter);
+        let start_pos;
+        let mut candidates: Vec<String> = match delim_pos {
+            Some(x) => {
+                start_pos = x + 1;
+                if &line[x..x+1] == ":" {
+                    self.get_variables().iter().cloned().collect()
+                } else {
+                    self.get_functions().iter().cloned()
+                        .chain(KEYWORDS.iter().map(|s| String::from(*s)))
+                        .collect()
+                }
+            },
+            None => {
+                start_pos = 0;
+                self.get_functions().iter().cloned()
+                    .chain(KEYWORDS.iter().map(|s| String::from(*s)))
+                    .collect()
+            },
+        };
         let prefix = &line[start_pos..pos];
-        let result = KEYWORDS.iter()
-            .map(Deref::deref)
-            .chain(functions.iter().map(|f| &*f as &str))
-            .filter(|word| word.to_lowercase().starts_with(prefix))
-            .map(|s| s.into())
-            .collect();
-        Ok((start_pos, result))
+        candidates.retain(|word| word.to_lowercase().starts_with(prefix));
+        Ok((start_pos, candidates))
     }
 }
 
